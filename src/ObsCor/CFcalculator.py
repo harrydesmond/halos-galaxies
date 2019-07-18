@@ -44,14 +44,14 @@ wp = convert_rp_pi_counts_to_wp(N, N, rand_N, rand_N, DD_counts, DR_counts, DR_c
 # Let's make a plot!
 wp_sim = np.load("../../Data/halocorr.npy")
 
-
+x = p.bin_centers(bins)
 
 
 plt.figure()
 plt.loglog(x, wp, label='Observation')
 plt.scatter(x, wp)
-plt.loglog(xr, yr, label='Reddick')
-plt.scatter(xr, yr)
+plt.loglog(p.xr, p.yr, label='Reddick')
+plt.scatter(p.xr, p.yr)
 plt.loglog(wp_sim['x'],wp_sim['wp'], label='Simulation')
 plt.scatter(wp_sim['x'], wp_sim['wp'])
 plt.ylim(ymin=1, ymax=2000)

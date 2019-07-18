@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
 # Script that is going to hold some constants and useful functions
-
 import math
+import numpy as np
 
 # Set constants
 h = 1
@@ -13,7 +13,7 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_mag' : -100, 'max_mag' : 100}
 
 # Random catalog settings
-rand_size_mult = 10
+rand_size_mult = 300
 
 # Corrfunc settings
 nbins = 30
@@ -22,7 +22,7 @@ max_rp = 30
 
 pimax = 40
 cosmology = 2
-nthreads = 20
+nthreads = 24
 
 # Reddick data (approximate...)
 xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,
