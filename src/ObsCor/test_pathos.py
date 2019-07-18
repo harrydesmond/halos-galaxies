@@ -3,6 +3,9 @@
 import pathos
 import numpy as np
 import math
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import scipy.stats as stats
 import time
 import multiprocessing as mp
@@ -29,10 +32,24 @@ def get_number(i):
 
 
 
-loop_out = pool.amap(get_number, range(nmax))
+loop_out = pool.map(get_number, range(nmax))
 end_time = time.time()
 pool.close()
-
+print(type(loop_out))
+print(list(loop_out))
 print(end_time-start_time)
 
 #print("Output size is {}".format(len(loop_out)))
+#
+#
+#start_time = time.time()
+#
+#l = list()
+#for i in range(nmax):
+#    l.append(get_number(i))
+#
+#
+#
+#end_time = time.time()
+#
+#print(end_time-start_time)

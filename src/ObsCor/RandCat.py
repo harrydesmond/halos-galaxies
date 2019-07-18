@@ -6,26 +6,20 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import healpy as hp
 import scipy.stats
-import astropy.constants as consts
 import pathos.multiprocessing
 import math
-import Corrfunc
-from Corrfunc.mocks.DDrppi_mocks import DDrppi_mocks
-from Corrfunc.utils import convert_rp_pi_counts_to_wp
-from astropy.io import fits
-
 import Setup as p
-#########################################
-#### Start generating random catalog ####
-#########################################
+
+galaxy_catalog = np.load("../../Data/sdss_cutoff.npy")
+pixs_list = np.load("../../Data/gpixs_list.npy")
 
 # Set distance limits based on the cut catalog
+Dist = galaxy_catalog["dist"]
 min_dist = np.min(Dist)
 max_dist = np.max(Dist)
 boxsize = max_dist
 
 # Pools cause threading is fun!!
-
 pool = pathos.multiprocessing.ProcessingPool(N_pools)
 
 def get_galaxy(i):

@@ -40,7 +40,7 @@ plt.close()
 # Perform cuts in Z, msol, and RA, MAG_r
 IDS = list()
 for m, r, rs, mag, i in zip(mass_survey, RA_survey, Z_survey, MAG_r, np.arange(mass_survey.size)):
-    if classify(m, r, rs, mag, p.lims) == True:
+    if p.classify(m, r, rs, mag, p.lims) == True:
         IDS.append(i)
 IDS = np.array(IDS)
 
@@ -51,7 +51,7 @@ log_mass = np.log10(mass_survey[IDS])
 MAG_r = MAG_r[IDS]
 
 # Count galaxies in pixels
-pix_count = np.zeros(hp.p.nside2npix(p.nside))
+pix_count = np.zeros(hp.nside2npix(p.nside))
 for r, d in zip(np.deg2rad(RA), np.deg2rad(DEC)):
     pix = hp.ang2pix(p.nside, np.pi/2-d, r)
     pix_count[pix] += 1
@@ -59,7 +59,7 @@ for r, d in zip(np.deg2rad(RA), np.deg2rad(DEC)):
 # Get a list of pixels in which there is a sufficient number of galaxies.
 # Furthermore check if its neighbours also have galaxies to eliminate outliers
 # This settings might have to be tweaeked when choosing different limits
-active_pixels = np.zeros(hp.p.nside2npix(p.nside))
+active_pixels = np.zeros(hp.nside2npix(p.nside))
 pixs_list = list()
 for i in range(pix_count.size):
     if pix_count[i] > 35:
@@ -68,7 +68,7 @@ for i in range(pix_count.size):
 
 # If more than n neighbours are not active pixels then remove. Eliminates outliers
 IDS = list()
-for i in range(hp.p.nside2npix(p.nside)):
+for i in range(hp.nside2npix(p.nside)):
     neighbours = hp.get_all_neighbours(p.nside, i)
     count = 0
     for ng in neighbours:
@@ -83,7 +83,7 @@ for j in IDS:
 
 # Check for holes. If there are any then add them to active pixels
 IDS = list()
-for i in range(hp.p.nside2npix(p.nside)):
+for i in range(hp.nside2npix(p.nside)):
     neighbours = hp.get_all_neighbours(p.nside, i)
     count = 0
     for ng in neighbours:
@@ -111,11 +111,10 @@ Dist = Dist[IDS]
 log_mass = log_mass[IDS] 
 MAG_r = MAG_r[IDS]
 
-pix_area = hp.p.nside2pixarea(p.nside, degrees=True)
+pix_area = hp.nside2pixarea(p.nside, degrees=True)
 survey_area = pix_area*len(pixs_list)
 N = Dist.size
-print("After applying cuts, there are {:d} galaxies over an area of {:.2f} deg^2".format(N,
-    survey_area))
+print("After applying cuts, there are {:d} galaxies over an area of {:.2f} deg^2".format(N, survey_area))
 
 # Make a mollview map of pixels over which random catalog will be distributed
 hp.mollview(active_pixels, rot=[180, 0, 0], min=-1, max=1)
@@ -163,6 +162,6 @@ galaxy_catalog['mag_r'] = np.ravel(MAG_r)
 np.save('../../Data/sdss_cutoff.npy', galaxy_catalog)
 
 # Furthermore, save the active pixels
-np.save("../../Data/gpixs_list.npy")
+np.save("../../Data/gpixs_list.npy", pixs_list)
 
 print("Done with cuts!")
