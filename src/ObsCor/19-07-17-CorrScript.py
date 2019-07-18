@@ -17,14 +17,14 @@ from astropy.io import fits
 print("Modules loaded. Starting!")
 
 # Set constants
-h = 0.688
+h = 1
 nside = 16
-lims = {'min_z' : 0, 'max_z' : 0.064,
+lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_msol' : 9.8, 'max_msol' : 30,
         'min_ra' : 100, 'max_ra' : 300,
-        'min_mag' : -100, 'max_mag' : -19}
-N_pools = 16
-rand_size_mult = 150
+        'min_mag' : -100, 'max_mag' : 100}
+N_pools = 4
+rand_size_mult = 1
 
 nbins = 25
 pimax = 40
@@ -65,7 +65,7 @@ def classify(M_sol, RA, Z, MAG, lims):
         return False
     return True
 
-survey = fits.open('../BAM/Old/nsa_v1.fits')[1].data
+survey = fits.open('../../BAM/Old/nsa_v1.fits')[1].data
 mass_survey = survey['SERSIC_MASS']/h**2
 RA_survey = survey['RA'] # in degrees
 DEC_survey = survey['DEC'] # in degrees
@@ -77,17 +77,17 @@ print("Loaded galaxy catalog data!")
 # Make original plots of the survey data
 hp.mollview(np.zeros(12), rot=[180, 0, 0])
 hp.projscatter(np.pi/2-np.deg2rad(DEC_survey), np.deg2rad(RA_survey), s=0.001, c='red')
-plt.savefig("../Plots/Corrfunc/Mollview_survey.png")
+plt.savefig("../../Plots/Corrfunc/Mollview_survey.png")
 plt.close()
 
 plt.figure()
 plt.hist(Z_survey, bins='auto')
-plt.savefig("../Plots/Corrfunc/Hist_Z_survey.png")
+plt.savefig("../../Plots/Corrfunc/Hist_Z_survey.png")
 plt.close()
 
 plt.figure()
 plt.hist(RA_survey, bins='auto')
-plt.savefig("../Plots/Corrfunc/Hist_RA_survey.png")
+plt.savefig("../../Plots/Corrfunc/Hist_RA_survey.png")
 plt.close()
 
 # Perform cuts in Z, msol, and RA
@@ -118,7 +118,7 @@ active_pixels = np.zeros(hp.nside2npix(nside))
 pixs_list = list()
 for i in range(pix_count.size):
     # This cut was set by experimenting with the data, might have to be replaced
-    if pix_count[i] > 25:
+    if pix_count[i] > 35:
         pixs_list.append(i)
         active_pixels[i] = 1
 # If more than 5 neighbours are not active pixels then remove
@@ -174,43 +174,43 @@ MAG_r = MAG_r[IDS]
 pix_area = hp.nside2pixarea(nside, degrees=True)
 survey_area = pix_area*len(pixs_list)
 N = Dist.size
-print("So, in this range there are this many galaxies ", N)
-print("And over area (approx) of ", survey_area)
-
+print("After applying cuts, there are {:d} galaxies over an area of {:.2f} deg^2".format(N,
+    survey_area))
 
 # Make a mollview map of pixels over which random catalog will be distributed
 hp.mollview(active_pixels, rot=[180, 0, 0], min=-1, max=1)
 hp.projscatter(np.pi/2-np.deg2rad(DEC), np.deg2rad(RA), s=0.01, c='red', alpha=0.5)
-plt.savefig("../Plots/Corrfunc/Mollview_PixSelect.png", dpi=160)
+plt.savefig("../../Plots/Corrfunc/Mollview_PixSelect.png", dpi=160)
 plt.close()
 
 # Plot the distribution of cuts
 
 plt.figure()
 plt.hist(Dist, bins='auto')
-plt.savefig("../Plots/Corrfunc/Hist_Dist_cut.png")
+plt.savefig("../../Plots/Corrfunc/Hist_Dist_cut.png")
 plt.close()
 
 plt.figure()
 plt.hist(log_mass, bins='auto')
-plt.savefig("../Plots/Corrfunc/Hist_Mass_cut.png")
+plt.savefig("../../Plots/Corrfunc/Hist_Mass_cut.png")
 plt.close()
 
 plt.figure()
 plt.hist(MAG_r, bins='auto')
-plt.savefig("../Plots/Corrfunc/Hist_Mag_cut.png")
+plt.savefig("../../Plots/Corrfunc/Hist_Mag_cut.png")
 plt.close()
 
 
 # Let's calculate the apparent magnitude and plot it
 m = MAG_r+5*np.log10(Dist*1e6)-5
+apmagcut = 14
 
-s = np.where(m < 14)[0].size
-print("This many galaxies have apparent magnitude of less than 14: ", s)
+s = np.where(m < apmagcut)[0].size
+print("There  are {:d} galaxies of apparent magnitude less than {:.2f}".format(s, apmagcut))
 
 plt.figure()
 plt.hist(m, bins='auto')
-plt.savefig("../Plots/Corrfunc/Hist_appMag_cut.png")
+plt.savefig("../../Plots/Corrfunc/Hist_appMag_cut.png")
 plt.close()
 
 
@@ -225,7 +225,7 @@ galaxy_catalog['ra'] = np.ravel(RA)
 galaxy_catalog['dec'] = np.ravel(DEC)
 galaxy_catalog['dist'] = np.ravel(Dist)
 galaxy_catalog['mag_r'] = np.ravel(MAG_r)
-np.save('../Data/sdss_cutoff.npy', galaxy_catalog)
+np.save('../../Data/sdss_cutoff.npy', galaxy_catalog)
 
 print("Done with cuts!")
 
@@ -236,7 +236,7 @@ print("Done with cuts!")
 # Set distance limits based on the cut catalog
 min_dist = np.min(Dist)
 max_dist = np.max(Dist)
-boxsize=max_dist
+boxsize = max_dist
 
 # Pools cause threading is fun!!
 
@@ -256,7 +256,7 @@ def get_galaxy(i):
 # Set how large the rand catalog should be
 Nmax = Dist.size*rand_size_mult
 
-print("Starting to generate the random catalog of size ", Nmax)
+print("Generating a random catalog of size {:d}".format(Nmax))
 
 loop_out = pool.map(get_galaxy, range(Nmax))
 rand_DEC = np.array([float(item[0]) for item in loop_out])
@@ -276,7 +276,7 @@ random_catalog['dec'] = np.rad2deg(np.ravel(rand_DEC))
 random_catalog['dist'] = np.ravel(rand_Dist)
 
 
-np.save('../Data/randCat_matchnsa.npy', random_catalog)
+np.save('../../Data/randCat_matchnsa.npy', random_catalog)
 
 print("Done with generating the catalog!")
 
@@ -289,7 +289,7 @@ plt.hist(Dist, bins='auto', density=1, label='gal catalog')
 plt.hist(rand_Dist, bins='auto', density=1, alpha=0.5, label='random')
 plt.legend()
 plt.tight_layout()
-plt.savefig("../Plots/Corrfunc/Hist_dist_randComp.png")
+plt.savefig("../../Plots/Corrfunc/Hist_dist_randComp.png")
 plt.close()
 
 
@@ -297,7 +297,7 @@ plt.close()
 hp.mollview(np.zeros(hp.nside2npix(nside)), rot=[180, 0, 0])
 hp.projscatter(np.pi/2-rand_DEC, rand_RA, s=0.0001, c='blue', alpha=0.2)
 hp.projscatter(np.pi/2-np.deg2rad(DEC), np.deg2rad(RA), s=0.05, c='r')
-plt.savefig("../Plots/Corrfunc/Mollview_rand_cat.png")
+plt.savefig("../../Plots/Corrfunc/Mollview_rand_cat.png")
 plt.close()
 
 
@@ -347,9 +347,12 @@ print("Finished auto-correlating rand. cat")
 # All the pair counts are done, get the angular correlation function
 wp = convert_rp_pi_counts_to_wp(N, N, rand_N, rand_N, DD_counts, DR_counts,
                                 DR_counts, RR_counts, nbins, pimax)
+print("Finished calculating the wp")
 
 # Save calculated corr func
-np.save("../Data/obs_CF.npy", wp)
+np.save("../../Data/obs_CF.npy", wp)
+
+print("Saved the wp")
 
 def bin_centers(edges):
     """ Calculates the centres of bins"""
@@ -371,11 +374,11 @@ yr = [512.3677407071057, 362.09840110670876, 253.06986529591367,
 
 # Load correlation function from a simulation
 
-wp_sim = np.load("../Data/halocorr.npy")
+wp_sim = np.load("../../Data/halocorr.npy")
 
 x = bin_centers(bins)
 
-wp_sim = np.load("../Data/halocorr.npy")
+wp_sim = np.load("../../Data/halocorr.npy")
 
 
 x = bin_centers(bins)
@@ -394,7 +397,7 @@ plt.xlabel(r'$r_p$')
 plt.ylabel(r'$w_p$')
 plt.legend()
 plt.tight_layout()
-plt.savefig("../Plots/Corrfunc/CorrCompar.png", dpi=180)
+plt.savefig("../../Plots/Corrfunc/CorrCompar.png", dpi=180)
 plt.close()
 
 print("Finished!!1")
