@@ -106,6 +106,6 @@ if rank == 0:                           # At end, a single thread does things li
     
     # And a HealPy map to plot galaxies pos..
     hp.mollview(np.zeros(12), rot=[180, 0, 0])
-    hp.projscatter(np.pi/2-DEC, RA, s=0.0001)
+    hp.projscatter(np.pi/2-DEC, RA, s=0.00001, c='red')
     plt.savefig("../../Plots/Corrfunc/3_Mollview_rand_cat.png")
     plt.close() 

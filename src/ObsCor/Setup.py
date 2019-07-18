@@ -13,13 +13,26 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_mag' : -100, 'max_mag' : 100}
 
 # Random catalog settings
-rand_size_mult = 1
+rand_size_mult = 10
 
 # Corrfunc settings
-nbins = 25
+nbins = 30
+min_rp = 0.1
+max_rp = 30
+
 pimax = 40
 cosmology = 2
-nthreads = 10
+nthreads = 20
+
+# Reddick data (approximate...)
+xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,
+      0.5350139833477285, 0.8605779048945061, 1.3960874510643801,
+      2.2454469597021176, 3.641545236724509, 5.857244150005106,
+      9.42373420397281, 15.176488599849602, 24.246492585165885]
+yr = [512.3677407071057, 362.09840110670876, 253.06986529591367,
+        171.06503647200338, 113.08892361578259, 70.7141679268513,
+        47.79992948330511, 32.67094059733128, 21.83994077255245,
+        13.505922697186861, 6.395183522903948, 2.7704555569535207]
 
 
 
@@ -57,3 +70,14 @@ def classify(M_sol, RA, Z, MAG, lims):
     if not (min_mag < MAG < max_mag):
         return False
     return True
+
+
+def unpack_catalog(catalog):
+    return catalog['ra'], catalog['dec'], catalog['dist']
+
+
+def bin_centers(edges):
+    cents = list()
+    for i in range(len(edges)-1):
+        cents.append((edges[i+1]+edges[i])/2)
+    return np.array(cents)
