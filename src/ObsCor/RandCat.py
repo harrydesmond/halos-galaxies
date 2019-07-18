@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
-# coding: utf-8
-import numpy as np
+# coding: utf-8 
+import numpy as np  
+import math
+import scipy.stats
+import time
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import healpy as hp
-import scipy.stats
-import pathos.multiprocessing
-import math
+
+from mpi4py import MPI
+from mpi4py.MPI import ANY_SOURCE
+import os
+import sys
+
 import Setup as p
 
+# Setup MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+MPI_size = comm.Get_size()
+
+# Load galaxy catalog
 galaxy_catalog = np.load("../../Data/sdss_cutoff.npy")
 pixs_list = np.load("../../Data/gpixs_list.npy")
 
@@ -17,12 +29,8 @@ pixs_list = np.load("../../Data/gpixs_list.npy")
 Dist = galaxy_catalog["dist"]
 min_dist = np.min(Dist)
 max_dist = np.max(Dist)
-boxsize = max_dist
 
-# Pools cause threading is fun!!
-pool = pathos.multiprocessing.ProcessingPool(N_pools)
-
-def get_galaxy(i):
+def get_galaxy(boxsize):
     while True:
         x, y, z = scipy.stats.uniform.rvs(loc=-1, scale=2, size=3)*boxsize
         pix = hp.vec2pix(p.nside, x,y,z)
@@ -33,29 +41,71 @@ def get_galaxy(i):
                 theta, phi = hp.vec2ang(np.array([x,y,z]))
                 return [np.pi/2-theta, phi, sim_dist]
 
-# Set how large the rand catalog should be
-Nmax = Dist.size*rand_size_mult
+start_time = time.time()
 
-print("Generating a random catalog of size {:d}".format(Nmax))
+# Total number of tasks to run over all procs
+Nmock = Dist.size*p.rand_size_mult                  
+N_per_proc = int(np.floor(Nmock/MPI_size))          # Divide tasks between procs
 
-loop_out = pool.map(get_galaxy, range(Nmax))
-rand_DEC = np.array([float(item[0]) for item in loop_out])
-rand_RA = np.array([float(item[1]) for item in loop_out])
-rand_Dist = np.array([float(item[2]) for item in loop_out])
+if rank != MPI_size-1:
+    N_proc = N_per_proc
+else:
+    N_proc = Nmock - (MPI_size-1)*N_per_proc    # Last proc does slightly more if MPI_size doesn't divide Nmock
 
-# Close the pools
-pool.close()
-pool.join()
-pool.clear()
+output = list()
+for i in range(N_proc):
+    output.append(get_galaxy(boxsize=max_dist))
+
+
+out_file = 'out_'+str(rank)+'.dat'                  # Label output file by proc rank
+np.savetxt(out_file, output)
+
+buff = np.zeros(1)                      # This causes threads to wait until they've all finished
+if rank==0:
+    for i in range(1, MPI_size):
+        comm.Recv(buff, source=i)
+else:
+    comm.Send(buff, dest=0)
+
+if rank == 0:                           # At end, a single thread does things like concatenate the files
+    string = 'cat `find ./ -name "out_*" | sort -V` > out.dat'
+    os.system(string)
+    string = 'rm out_*.dat'
+    os.system(string)
+
+    end_time = time.time()
+    print("Generating the random catalog took me {} seconds".format(end_time-start_time))
     
+    out = np.loadtxt("out.dat")
+    os.system("rm out.dat")
+    
+    DEC = out[:, 0]
+    RA = out[:, 1]
+    dist = out[:, 2]
+    
+    
+    random_catalog = np.zeros(Nmock, dtype={'names':('ra', 'dec', 'dist'),
+                                'formats':('float64', 'float64', 'float64')})
+    random_catalog['ra'] = np.rad2deg(np.ravel(RA))
+    random_catalog['dec'] = np.rad2deg(np.ravel(DEC))
+    random_catalog['dist'] = np.ravel(dist)
+    
+    
+    np.save('../../Data/randCat_matchnsa.npy', random_catalog)
+    
+    print("Done with generating the catalog of size {}!".format(RA.size))
 
-random_catalog = np.zeros(Nmax, dtype={'names':('ra', 'dec', 'dist'),
-                            'formats':('float64', 'float64', 'float64')})
-random_catalog['ra'] = np.rad2deg(np.ravel(rand_RA))
-random_catalog['dec'] = np.rad2deg(np.ravel(rand_DEC))
-random_catalog['dist'] = np.ravel(rand_Dist)
 
-
-np.save('../../Data/randCat_matchnsa.npy', random_catalog)
-
-print("Done with generating the catalog!")
+    
+   # Make plots to check everything is going acccording to plan :-O
+    plt.figure()
+    plt.hist(dist, bins='auto')
+    plt.savefig("../../Plots/Corrfunc/3_Hist_randDist.png")
+    plt.close()
+    
+    
+    # And a HealPy map to plot galaxies pos..
+    hp.mollview(np.zeros(12), rot=[180, 0, 0])
+    hp.projscatter(np.pi/2-DEC, RA, s=0.0001)
+    plt.savefig("../../Plots/Corrfunc/3_Mollview_rand_cat.png")
+    plt.close() 
