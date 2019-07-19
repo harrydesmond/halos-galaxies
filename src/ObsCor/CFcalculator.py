@@ -25,6 +25,13 @@ rand_N = rand_RA.size
 # Setup the bins
 bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
 
+##############################################################
+# This whole  thing needs to be edited to include jackknifing#
+##############################################################
+
+
+
+
 # Auto pair counts in DD
 autocorr = 1
 DD_counts = DDrppi_mocks(autocorr, p.cosmology, p.nthreads, p.pimax, bins, RA, DEC, dist, is_comoving_dist=True)
@@ -40,6 +47,11 @@ RR_counts = DDrppi_mocks(autocorr, p.cosmology, p.nthreads, p.pimax, bins, rand_
 
 # All the pair counts are done, get the angular correlation function
 wp = convert_rp_pi_counts_to_wp(N, N, rand_N, rand_N, DD_counts, DR_counts, DR_counts, RR_counts, p.nbins, p.pimax)
+
+# Save this
+np.save("../../Data/Obs_cor.npy", wp)
+
+
 
 # Let's make a plot!
 wp_sim = np.load("../../Data/halocorr.npy")
