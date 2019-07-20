@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
 # coding: utf-8 
-import numpy as np
 import healpy as hp
+import numpy as np
 import Corrfunc
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import time
+
+#from mpi4py import MPI
+#from mpi4py.MPI import ANY_SOURCE
+#import os
+#import sys
 
 import Setup as p
+
+
+## Setup MPI
+#comm = MPI.COMM_WORLD
+#rank = comm.Get_rank()
+#MPI_size = comm.Get_size()
 
 # Read the galaxy catalog
 galaxy_catalog = np.load("../../Data/sdss_cutoff.npy")
@@ -21,10 +33,6 @@ rand_N = rand_RA.size
 
 # Setup the bins
 bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
-
-##############################################################
-# This whole  thing needs to be edited to include jackknifing#
-##############################################################
 
 pixs_list = np.load("../../Data/gpixs_list.npy")
 # Find the pixels that are not on the boundary
@@ -41,22 +49,18 @@ for px in pixs_list:
     if flag == False:
         inside_pixs.append(px)
 
-# Number of sub-samples
-Nsub = 10
 
 # Pick which inside pixels will get eliminated (along with their neighbours)
-chosen_pixels = np.random.choice(inside_pixs, size=Nsub, replace=False)
+chosen_pixels = np.random.choice(inside_pixs, size=p.Nsub)
 
 # Convert RA, DEC into pix nums
 gpixs = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(DEC), np.deg2rad(RA))
-rand_gpixs = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(rand_DEC), np.deg2rad(rand_RA))
+rand_gpixs = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(rand_DEC),
+                        np.deg2rad(rand_RA))
+
+
 # Let's do the heavy work..
-
-
-
-#Initialise some array here?
-
-for cpix in chosen_pixels:
+def generate_wp(cpix, nthreads):
     masked_pixs = hp.get_all_neighbours(p.nside, cpix)
     masked_pixs = np.append(masked_pixs, cpix)
 
@@ -76,31 +80,47 @@ for cpix in chosen_pixels:
     crand_Dist = rand_Dist[IDS]
     crandN = crand_Dist.size
 
-
-    #hp.mollview(np.zeros(12), rot=[180, 0,0 ])
-    #hp.projscatter(np.pi/2-np.deg2rad(cDEC), np.deg2rad(cRA), s=0.001, c='red')
-    #plt.savefig("test"+ str(cpix) + ".png")
-
     # Auto pair counts in DD
     autocorr = 1
-    DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, p.nthreads, p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True)
+    DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
+                        p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True)
     
     # Cross pair counts in DR
     autocorr = 0
-    DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, p.nthreads, p.pimax, bins, RA, DEC, dist, RA2=rand_RA,
-                            DEC2=rand_DEC, CZ2=rand_Dist, is_comoving_dist=True)
+    DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
+                        p.pimax, bins, RA, DEC, dist, RA2=rand_RA,
+                        DEC2=rand_DEC, CZ2=rand_Dist, is_comoving_dist=True)
     
     # Auto pairs counts in RR
     autocorr=1
-    RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, p.nthreads, p.pimax, bins, rand_RA, rand_DEC, rand_Dist, is_comoving_dist=True)
+    RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
+                        p.pimax, bins, rand_RA, rand_DEC, rand_Dist,
+                        is_comoving_dist=True)
     
     # All the pair counts are done, get the angular correlation function
-    wp = Corrfunc.utils.convert_rp_pi_counts_to_wp(N, N, rand_N, rand_N, DD_counts, DR_counts, DR_counts, RR_counts, p.nbins, p.pimax)
-#
-## Save this
-#np.save("../../Data/Obs_cor.npy", wp)
-#
-#
+    wp = Corrfunc.utils.convert_rp_pi_counts_to_wp(N, N, rand_N, rand_N,
+            DD_counts, DR_counts, DR_counts, RR_counts, p.nbins, p.pimax)
+    print("Calculated w_p after covering pix {}".format(cpix))
+    return wp
+
+wp_out = list()
+start_time = time.time()
+for cpix in chosen_pixels:
+    wp = generate_wp(cpix, p.nthreads)
+    wp_out.append(wp)
+
+wp_out = np.array(wp_out)
+print("Finished in {}".format(time.time()-start_time))
+print("Shape is {}".format(wp_out.shape))
+
+# The shape is Nsubsample x nbins
+mean_wp = np.mean(wp_out, axis=0)
+print(mean_wp.shape, mean_wp, wp_out)
+
+# Now do the statistics and return mean + covariance matrix
+
+
+
 #
 ## Let's make a plot!
 #wp_sim = np.load("../../Data/halocorr.npy")
@@ -127,3 +147,6 @@ for cpix in chosen_pixels:
 #
 #
 #
+
+
+
