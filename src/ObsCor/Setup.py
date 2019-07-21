@@ -13,7 +13,7 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_mag' : -100, 'max_mag' : 100}
 
 # Random catalog settings
-rand_size_mult = 1
+rand_size_mult = 20
 
 # Corrfunc settings
 nbins = 30
@@ -22,8 +22,8 @@ max_rp = 30
 
 pimax = 40
 cosmology = 2
-nthreads = 8
-Nsub = 10
+nthreads = 28 
+Nsub = 50
 
 # Reddick data (approximate...)
 xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,
