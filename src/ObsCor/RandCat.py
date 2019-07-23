@@ -8,6 +8,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import healpy as hp
+import kmeans_radec
+import pickle
 
 from mpi4py import MPI
 from mpi4py.MPI import ANY_SOURCE
@@ -89,7 +91,19 @@ if rank == 0:                           # At end, a single thread does things li
     random_catalog['ra'] = np.rad2deg(np.ravel(RA))
     random_catalog['dec'] = np.rad2deg(np.ravel(DEC))
     random_catalog['dist'] = np.ravel(dist)
+
+    # Now calculate the k-means centers 
+    X = np.vstack([RA, DEC]).T
+    km = kmeans_radec.kmeans_sample(X, p.ncent, maxiter=250, tol=1.0e-5)
+    with open("../../Data/km_clusters.p", 'wb') as handle:
+        pickle.dump(km, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
+    hp.mollview(np.zeros(12), rot=180)
+    for lab in range(p.ncent):
+        IDS = np.where(km.labels == lab)
+        hp.projscatter(np.pi/2-DEC[IDS], RA[IDS], s=1)
+    plt.savefig("../../Plots/Corrfunc/Clustering.png", dpi=240)
+    plt.close()
     
     np.save('../../Data/randCat_matchnsa.npy', random_catalog)
     

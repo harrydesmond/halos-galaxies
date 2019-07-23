@@ -15,7 +15,6 @@ from time import time
 catalog = np.load("../../Catalog_Baryon/Catalog_BMF_Iter0_Alpha0,0.npy")
 
 # These cuts will have to be later edited as well and prob apply cut in SM
-
 sm = catalog['cat16']
 IDS = np.where(sm>9.8)
 x = catalog['x'][IDS]
@@ -25,7 +24,6 @@ z = catalog['z'][IDS]
 rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
 
 # Split the box into subvolumes
-
 Nsub = 256
 edges = np.arange(0, 400+25, 25)
 box_labels = list()
@@ -38,7 +36,7 @@ gbins = ly*side+lx
 print("This many gals {}".format(x.size))
 # Do some computation
 wp_out = list()
-for i in range(side**2):
+for i in range(p.ncent):
     IDS = np.where(gbins != i)
 
     XX = x[IDS]

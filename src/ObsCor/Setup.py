@@ -14,7 +14,7 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_mag' : -100, 'max_mag' : 100}
 
 # Random catalog settings
-rand_size_mult = 5
+rand_size_mult = 50
 
 boxsize = 400
 subside = 25

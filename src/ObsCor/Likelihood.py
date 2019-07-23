@@ -9,7 +9,6 @@ from time import time
 import Setup as p
 #from astropy import constants as const, units as u
 
-
 class MasterEquation:
     """
     Add a fancy description
@@ -29,7 +28,7 @@ class MasterEquation:
         """
         IDS = np.where(MFobj[:, 0]>mlim)
         # Abundances are not logged, whereas masses are logged
-        af = amatch.AbundanceFunction(MFobj[:, 0][IDS], MFobj[:, 1][IDS], (5.0, 13.0),
+        af = amatch.AbundanceFunction(MFobj[:, 0][IDS], MFobj[:, 1][IDS], (9.8, 13.5),
                         faint_end_first=True)
         return af
     
@@ -41,7 +40,7 @@ class MasterEquation:
         plist = self.halos['vvir']*(self.halos['vmax']/self.halos['vvir'])**alpha
         # Calculate the number densities
         nd_halos = amatch.calc_number_densities(plist, p.boxsize)
-        names = ['mvir', 'conc', 'galmass', 'x', 'y', 'z']    
+        names = ['galmass', 'x', 'y', 'z']    
         
         cat_out = list()
         for n in range(Niter):
@@ -54,15 +53,11 @@ class MasterEquation:
             cat = self.af.match(nd_halos, scatter)
             # Find masks to eliminate what we don't like
             mask = (~np.isnan(cat)) & (cat>7.)
-            mvir = self.halos['mvir'][mask]
-            N = mvir.size
+            galmass = cat[mask]
+            N = galmass.size
             # Create a structured array
-            catalog = np.zeros(N, dtype={
-                         'names':('mvir', 'conc', 'galmass', 'x', 'y', 'z'),
-                         'formats':('f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8')
-                                 })
-            data = [self.halos['mvir'][mask], self.halos['mvir'][mask], cat[mask],
-                    self.halos['x'][mask], self.halos['y'][mask], self.halos['z'][mask]] 
+            catalog = np.zeros(N, dtype={'names':('galmass', 'x', 'y', 'z'), 'formats':('f8', 'f8', 'f8', 'f8')})
+            data = [galmass, self.halos['x'][mask], self.halos['y'][mask], self.halos['z'][mask]] 
             for name, d in zip(names, data):
                 catalog[name] = d
 

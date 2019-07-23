@@ -24,27 +24,15 @@ rand_N = rand_RA.size
 # Setup the bins
 bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
 
-print("Everything loaded, time to do k-means.")
-# Now split these catalogs into some groups
+# Now assign each galaxy to a kmeans cluster that were precomputed on the random data set
 X = np.vstack([RA, DEC]).T
-km = kmeans_radec.kmeans_sample(X, p.ncent, maxiter=500, tol=1.0e-5)
-if not km.converged:
-    print("K-means didn't converge, exiting..")
-    exit()
+with open("../../Data/km_clusters.p", 'rb') as handle:
+    km = pickle.load(handle)
 
-# Just a quick check.. plot a healpy map of how it was split
-m = np.zeros(12)
-hp.mollview(m, rot=180)
-for label in range(p.ncent):
-    IDS = np.where(km.labels==label)
-    hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS]), np.deg2rad(RA[IDS]), s=0.01)
-plt.savefig("../../Plots/Corrfunc/3_Mollview_kmeans.png", dpi=180)
+rand_gal_labels = km.labels
+gal_labels = km.find_nearest(X)
 
-gal_labels = km.labels
-
-# Now take the random catalog and associate the closes center to each simulated galaxy
-randX = np.vstack([rand_RA, rand_DEC]).T
-rand_gal_labels = km.find_nearest(randX)
+print("Everything loaded")
 
 # Let's do the heavy work..
 def generate_wp(kcent, nthreads):
@@ -59,23 +47,11 @@ def generate_wp(kcent, nthreads):
 
     # Do the same as above but for the simulated catalog
     IDS = np.where(rand_gal_labels != kcent)
-#    IDS = np.arange(rand_N)
     crand_RA = rand_RA[IDS]
     crand_DEC = rand_DEC[IDS]
     crand_Dist = rand_Dist[IDS]
     crandN = crand_Dist.size
 
-    # Make some test plots
-#    hp.mollview(np.zeros(12), rot=180)
-#    hp.projscatter(np.pi/2-np.deg2rad(cDEC), np.deg2rad(cRA), s=0.01)
-#    plt.savefig("../../Plots/Corrfunc/8_MW_kmeans{}a".format(kcent))
-#    plt.close()
-#
-#    hp.mollview(np.zeros(12), rot=180)
-#    hp.projscatter(np.pi/2-np.deg2rad(crand_DEC), np.deg2rad(crand_RA), s=0.01)
-#    plt.savefig("../../Plots/Corrfunc/8_MW_kmeans{}b".format(kcent))
-#    plt.close()
-    
     # Auto pair counts in DD
     autocorr = 1
     DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
