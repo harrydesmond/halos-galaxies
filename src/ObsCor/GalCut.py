@@ -8,6 +8,8 @@ import healpy as hp
 import astropy.constants as consts
 import math
 from astropy.io import fits
+import pickle
+from sklearn.cluster import DBSCAN
 
 import Setup as p
 
@@ -37,11 +39,12 @@ plt.hist(RA_survey, bins='auto')
 plt.savefig("../../Plots/Corrfunc/1_Hist_RA_survey.png")
 plt.close()
 
-# Perform cuts in Z, msol, and RA, MAG_r
+# Perform cuts in Z, msol, and RA, DEC,  MAG_r
 IDS = list()
-for m, r, rs, mag, i in zip(mass_survey, RA_survey, Z_survey, MAG_r, np.arange(mass_survey.size)):
-    if p.classify(m, r, rs, mag, p.lims) == True:
+for m, r, d, rs, mag, i in zip(mass_survey, RA_survey, DEC_survey, Z_survey, MAG_r, np.arange(mass_survey.size)):
+    if p.classify(m, r, d, rs, mag, p.lims) == True:
         IDS.append(i)
+
 IDS = np.array(IDS)
 
 RA = RA_survey[IDS]
@@ -50,74 +53,60 @@ Dist = Z_survey[IDS]*consts.c.to_value('km/s')/(p.h*100)
 log_mass = np.log10(mass_survey[IDS])
 MAG_r = MAG_r[IDS]
 
-# Count galaxies in pixels
-pix_count = np.zeros(hp.nside2npix(p.nside))
-for r, d in zip(np.deg2rad(RA), np.deg2rad(DEC)):
-    pix = hp.ang2pix(p.nside, np.pi/2-d, r)
-    pix_count[pix] += 1
+# Scale RA and DEC for the DBSCAN algorith to find outliers
+sRA = RA - np.min(RA)
+sDEC = DEC - np.min(DEC)
+sRA = sRA/np.max(sRA)
+sDEC = sDEC/np.max(sDEC)
 
-# Get a list of pixels in which there is a sufficient number of galaxies.
-# Furthermore check if its neighbours also have galaxies to eliminate outliers
-# This settings might have to be tweaeked when choosing different limits
-active_pixels = np.zeros(hp.nside2npix(p.nside))
-pixs_list = list()
-for i in range(pix_count.size):
-    if pix_count[i] > 35:
-        pixs_list.append(i)
-        active_pixels[i] = 1
+print("Let's detect the outliers!")
+X = np.vstack([sRA, sDEC]).T
+# Do the outlier detection.. parameters carefully chosen
+outlier_detection = DBSCAN(eps=0.05, metric='euclidean', min_samples=500, n_jobs=-1)
+clusters = outlier_detection.fit_predict(X)
 
-# If more than n neighbours are not active pixels then remove. Eliminates outliers
-IDS = list()
-for i in range(hp.nside2npix(p.nside)):
-    neighbours = hp.get_all_neighbours(p.nside, i)
-    count = 0
-    for ng in neighbours:
-        if not ng in pixs_list:
-            count += 1
-    if count > 3:
-        IDS.append(i)
-active_pixels[IDS] = 0
-for j in IDS:
-    if j in pixs_list:
-        pixs_list.remove(j)
+print("Done with outliers")
 
-# Check for holes. If there are any then add them to active pixels
-IDS = list()
-for i in range(hp.nside2npix(p.nside)):
-    neighbours = hp.get_all_neighbours(p.nside, i)
-    count = 0
-    for ng in neighbours:
-        if ng in pixs_list:
-            count += 1
-    if count > 4:
-        IDS.append(i)
+IDS_keep = np.where(clusters != -1)
+IDS_rem = np.where(clusters == -1)
 
-active_pixels[IDS] = 1
-for j in IDS:
-    if j not in pixs_list:
-        pixs_list.append(j)
+npixs_out = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(DEC[IDS_rem]), np.deg2rad(RA[IDS_rem]))
+npixs_in = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(DEC[IDS_keep]), np.deg2rad(RA[IDS_keep]))
 
-# Now, take galaxies only in the active pixels!
-IDS = list()
-for r, d, i in zip(np.deg2rad(RA), np.deg2rad(DEC), np.arange(RA.size)):
-    pix = hp.ang2pix(p.nside, np.pi/2-d, r)
-    if pix in pixs_list:
-        IDS.append(i)
-IDS = np.array(IDS)
+# Make plots to see how the outlier detection algorithm did
+hp.mollview(np.zeros(12), rot=180)
+hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS_rem]), np.deg2rad(RA[IDS_rem]), s=1, c='red')
+hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS_keep]), np.deg2rad(RA[IDS_keep]), s=0.001, c='blue')
+plt.savefig("../../Plots/Corrfunc/2_Mollview_remGals.png", dpi=180)
 
-RA = RA[IDS]
-DEC = DEC[IDS]
-Dist = Dist[IDS]
-log_mass = log_mass[IDS] 
-MAG_r = MAG_r[IDS]
+m = np.zeros(hp.nside2npix(p.nside))
+m[npixs_in] = -1
+m[npixs_out] = 1
+hp.mollview(m, rot=180)
+plt.savefig("../../Plots/Corrfunc/2_Mollview_remGalspixs.png", dpi=180)
+
+plt.close()
+
+# Grab the not-outliers galaxies
+RA = RA[IDS_keep]
+DEC = DEC[IDS_keep]
+Dist = Dist[IDS_keep]
+log_mass = log_mass[IDS_keep] 
+MAG_r = MAG_r[IDS_keep]
 
 pix_area = hp.nside2pixarea(p.nside, degrees=True)
-survey_area = pix_area*len(pixs_list)
+Npix = np.unique(npixs_in).size
+survey_area = pix_area*Npix
 N = Dist.size
 print("After applying cuts, there are {:d} galaxies over an area of {:.2f} deg^2".format(N, survey_area))
 
+m = np.zeros(hp.nside2npix(p.nside))
+pixs = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(DEC), np.deg2rad(RA))
+for p in pixs:
+    m[p] = 1
+
 # Make a mollview map of pixels over which random catalog will be distributed
-hp.mollview(active_pixels, rot=[180, 0, 0], min=-1, max=1)
+hp.mollview(m, rot=[180, 0, 0])
 hp.projscatter(np.pi/2-np.deg2rad(DEC), np.deg2rad(RA), s=0.01, c='red', alpha=0.5)
 plt.savefig("../../Plots/Corrfunc/2_Mollview_PixSelect.png", dpi=180)
 plt.close()
@@ -160,8 +149,6 @@ galaxy_catalog['dec'] = np.ravel(DEC)
 galaxy_catalog['dist'] = np.ravel(Dist)
 galaxy_catalog['mag_r'] = np.ravel(MAG_r)
 np.save('../../Data/sdss_cutoff.npy', galaxy_catalog)
-
-# Furthermore, save the active pixels
-np.save("../../Data/gpixs_list.npy", pixs_list)
+pixs_list = np.save("../../Data/gpixs_list.npy", np.unique(npixs_in))
 
 print("Done with cuts!")

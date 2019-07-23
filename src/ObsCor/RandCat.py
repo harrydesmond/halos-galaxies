@@ -103,9 +103,9 @@ if rank == 0:                           # At end, a single thread does things li
     plt.savefig("../../Plots/Corrfunc/3_Hist_randDist.png")
     plt.close()
     
-    
+    print("And don't forget the HealPy plot!")  
     # And a HealPy map to plot galaxies pos..
     hp.mollview(np.zeros(12), rot=[180, 0, 0])
-    hp.projscatter(np.pi/2-DEC, RA, s=0.00001, c='red')
+    hp.projscatter(np.pi/2-DEC, RA, s=0.001, c='red')
     plt.savefig("../../Plots/Corrfunc/3_Mollview_rand_cat.png")
     plt.close() 

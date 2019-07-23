@@ -6,24 +6,28 @@ import numpy as np
 
 # Set constants
 h = 1
-nside = 16
+nside = 27
 lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_msol' : 9.8, 'max_msol' : 30,
         'min_ra' : 100, 'max_ra' : 300,
+        'min_dec' : -4.8, 'max_dec' : 75,
         'min_mag' : -100, 'max_mag' : 100}
 
 # Random catalog settings
-rand_size_mult = 20
+rand_size_mult = 5
+
+boxsize = 400
+subside = 25
 
 # Corrfunc settings
 nbins = 30
 min_rp = 0.1
 max_rp = 30
+ncent = 256
 
 pimax = 40
 cosmology = 2
-nthreads = 28 
-Nsub = 50
+nthreads = 28
 
 # Reddick data (approximate...)
 xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,
@@ -38,7 +42,7 @@ yr = [512.3677407071057, 362.09840110670876, 253.06986529591367,
 
 
 # Useful functions
-def classify(M_sol, RA, Z, MAG, lims):
+def classify(M_sol, RA, DEC, Z, MAG, lims):
     """
     Function that cuts the galaxy catalog based on some properties.
     Can do cuts in: Msol, RA, Z, MAG
@@ -47,6 +51,7 @@ def classify(M_sol, RA, Z, MAG, lims):
     # Unpack the limits
     min_z, max_z = lims['min_z'], lims['max_z']
     min_ra, max_ra = lims['min_ra'], lims['max_ra'] # assumed in degrees
+    min_dec, max_dec = lims['min_dec'], lims['max_dec'] # assumed in degrees
     min_msol, max_msol = lims['min_msol'], lims['max_msol'] # assumed in log10
     min_mag, max_mag = lims['min_mag'], lims['max_mag']
     
@@ -62,6 +67,9 @@ def classify(M_sol, RA, Z, MAG, lims):
     if not (min_ra < RA < max_ra):
         return False
     
+    if not (min_dec < DEC < max_dec):
+        return False
+
     if not (min_z < Z < max_z):
         return False
 
