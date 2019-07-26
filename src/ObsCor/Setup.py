@@ -17,17 +17,17 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
 rand_size_mult = 50
 
 boxsize = 400
-subside = 25
+subside = 50
 
 # Corrfunc settings
 nbins = 30
 min_rp = 0.1
 max_rp = 30
-ncent = 256
+ncent = 100
 
 pimax = 40
 cosmology = 2
-nthreads = 28
+nthreads = 6
 
 # Reddick data (approximate...)
 xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,

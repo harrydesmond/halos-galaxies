@@ -52,6 +52,18 @@ def generate_wp(kcent, nthreads):
     crand_Dist = rand_Dist[IDS]
     crandN = crand_Dist.size
 
+    # Make some plots to check if its doing the right thing
+    hp.mollview(np.zeros(12), rot=180)
+    hp.projscatter(np.pi/2-np.deg2rad(crand_DEC), np.deg2rad(crand_RA), s=0.01)
+    plt.savefig("../../Plots/Clusters/{}Rand.png".format(kcent), dpi=180)
+    plt.close()
+
+
+    hp.mollview(np.zeros(12), rot=180)
+    hp.projscatter(np.pi/2-np.deg2rad(cDEC), np.deg2rad(cRA), s=0.01)
+    plt.savefig("../../Plots/Clusters/{}SDSS.png".format(kcent), dpi=180)
+    plt.close()
+
     # Auto pair counts in DD
     autocorr = 1
     DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,

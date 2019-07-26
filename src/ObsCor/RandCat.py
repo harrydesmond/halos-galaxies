@@ -81,15 +81,15 @@ if rank == 0:                           # At end, a single thread does things li
     out = np.loadtxt("out.dat")
     os.system("rm out.dat")
     
-    DEC = out[:, 0]
-    RA = out[:, 1]
+    DEC = np.rad2deg(out[:, 0])
+    RA = np.rad2deg(out[:, 1])
     dist = out[:, 2]
     
     
     random_catalog = np.zeros(Nmock, dtype={'names':('ra', 'dec', 'dist'),
                                 'formats':('float64', 'float64', 'float64')})
-    random_catalog['ra'] = np.rad2deg(np.ravel(RA))
-    random_catalog['dec'] = np.rad2deg(np.ravel(DEC))
+    random_catalog['ra'] = np.ravel(RA)
+    random_catalog['dec'] = np.ravel(DEC)
     random_catalog['dist'] = np.ravel(dist)
 
     # Now calculate the k-means centers 
@@ -101,7 +101,7 @@ if rank == 0:                           # At end, a single thread does things li
     hp.mollview(np.zeros(12), rot=180)
     for lab in range(p.ncent):
         IDS = np.where(km.labels == lab)
-        hp.projscatter(np.pi/2-DEC[IDS], RA[IDS], s=1)
+        hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS]), np.deg2rad(RA[IDS]), s=1)
     plt.savefig("../../Plots/Corrfunc/Clustering.png", dpi=240)
     plt.close()
     
@@ -120,6 +120,6 @@ if rank == 0:                           # At end, a single thread does things li
     print("And don't forget the HealPy plot!")  
     # And a HealPy map to plot galaxies pos..
     hp.mollview(np.zeros(12), rot=[180, 0, 0])
-    hp.projscatter(np.pi/2-DEC, RA, s=0.001, c='red')
+    hp.projscatter(np.pi/2-np.deg2rad(DEC), np.deg2rad(RA), s=0.001, c='red')
     plt.savefig("../../Plots/Corrfunc/3_Mollview_rand_cat.png")
     plt.close() 

@@ -46,7 +46,6 @@ for m, r, d, rs, mag, i in zip(mass_survey, RA_survey, DEC_survey, Z_survey, MAG
         IDS.append(i)
 
 IDS = np.array(IDS)
-
 RA = RA_survey[IDS]
 DEC = DEC_survey[IDS]
 Dist = Z_survey[IDS]*consts.c.to_value('km/s')/(p.h*100)
@@ -62,7 +61,7 @@ sDEC = sDEC/np.max(sDEC)
 print("Let's detect the outliers!")
 X = np.vstack([sRA, sDEC]).T
 # Do the outlier detection.. parameters carefully chosen
-outlier_detection = DBSCAN(eps=0.05, metric='euclidean', min_samples=500, n_jobs=-1)
+outlier_detection = DBSCAN(eps=0.07, metric='euclidean', min_samples=800, n_jobs=-1)
 clusters = outlier_detection.fit_predict(X)
 
 print("Done with outliers")

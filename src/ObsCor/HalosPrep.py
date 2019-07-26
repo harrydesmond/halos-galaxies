@@ -28,34 +28,37 @@ halos = np.load("../../BAM/hlist_1.00000.npy")
 
 print("Finished loading things")
 
+# Make cuts on mvir
+#IDS = np.where(np.log10(halos['mvir'])>9.8)
+
 # Calculate some extra things that will later need to be stored
 # And grab some stuff
 vvir = vvir_from_cosmology(halos, cosmology)
 vmax = halos['Vmax@Mpeak']
 mvir = halos['mvir']/p.h # Put virial mass into physical Msun units
-conc = halos['rvir']/halos['rs_klypin']
+conc = (halos['rvir']/halos['rs_klypin'])
 x_pos = halos['x']
 y_pos = halos['y']
 z_pos = halos['z']
 # What is the concentration parameter for, will I need it later?
 
-# Calculate the box position in a subvolume
-edges = np.arange(0, p.boxsize+p.subside, p.subside)
-# Figure out into which boxes galaxies belong
-lx = np.digitize(x_pos, edges)-1
-ly = np.digitize(y_pos, edges)-1
-nboxes = edges.size-1
-gbins = ly*nboxes+lx
+## Calculate the box position in a subvolume
+#edges = np.arange(0, p.boxsize+p.subside, p.subside)
+## Figure out into which boxes galaxies belong
+#lx = np.digitize(x_pos, edges)-1
+#ly = np.digitize(y_pos, edges)-1
+#nboxes = edges.size-1
+#gbins = ly*nboxes+lx
 
 print("Finished computing things")
 
 # Save these into an npy data files
 N = x_pos.size
 
-halos_catalog = np.zeros(N, dtype={'names':('mvir', 'conc', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins'),
-                      'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'int64')})
-names = ['mvir', 'conc', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins']
-data = [mvir, conc, x_pos, y_pos, z_pos, vmax, vvir, gbins]
+halos_catalog = np.zeros(N, dtype={'names':('mvir', 'conc', 'x', 'y', 'z', 'vmax', 'vvir'),
+                      'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'float64')})
+names = ['mvir', 'conc', 'x', 'y', 'z', 'vmax', 'vvir']
+data = [mvir, conc, x_pos, y_pos, z_pos, vmax, vvir]
 for name, d in zip(names, data):
     halos_catalog[name] = d
 
