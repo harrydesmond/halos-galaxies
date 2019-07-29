@@ -61,7 +61,7 @@ sDEC = sDEC/np.max(sDEC)
 print("Let's detect the outliers!")
 X = np.vstack([sRA, sDEC]).T
 # Do the outlier detection.. parameters carefully chosen
-outlier_detection = DBSCAN(eps=0.07, metric='euclidean', min_samples=800, n_jobs=-1)
+outlier_detection = DBSCAN(eps=0.1, metric='euclidean', min_samples=800, n_jobs=-1)
 clusters = outlier_detection.fit_predict(X)
 
 print("Done with outliers")

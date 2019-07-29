@@ -6,7 +6,7 @@ import numpy as np
 
 # Set constants
 h = 1
-nside = 27
+nside = 36
 lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_msol' : 9.8, 'max_msol' : 30,
         'min_ra' : 100, 'max_ra' : 300,
@@ -15,6 +15,10 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
 
 # Random catalog settings
 rand_size_mult = 50
+min_alpha = 0.0
+max_alpha = 5
+min_scatter = 0.0
+max_scatter = 1
 
 boxsize = 400
 subside = 50
@@ -27,7 +31,7 @@ ncent = 100
 
 pimax = 40
 cosmology = 2
-nthreads = 6
+nthreads = 14
 
 # Reddick data (approximate...)
 xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,

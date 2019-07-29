@@ -12,7 +12,7 @@ import kmeans_radec
 import Setup as p
 
 # Read the galaxy catalog
-galaxy_catalog = np.load("../../Data/sdss_cutoff.npy")
+galaxy_catalog = np.load("../../Data/sdss_cutoffV2.npy")
 RA, DEC, dist = p.unpack_catalog(galaxy_catalog)
 N = RA.size
 
@@ -64,7 +64,7 @@ def generate_wp(kcent, nthreads):
     plt.savefig("../../Plots/Clusters/{}SDSS.png".format(kcent), dpi=180)
     plt.close()
 
-    # Auto pair counts in DD
+    # Auto pair counts in DD i.e. survey catalog
     autocorr = 1
     DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
                         p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True)
@@ -72,13 +72,13 @@ def generate_wp(kcent, nthreads):
     # Cross pair counts in DR
     autocorr = 0
     DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, RA, DEC, dist, RA2=rand_RA,
-                        DEC2=rand_DEC, CZ2=rand_Dist, is_comoving_dist=True)
+                        p.pimax, bins, cRA, cDEC, cDist, RA2=crand_RA,
+                        DEC2=crand_DEC, CZ2=crand_Dist, is_comoving_dist=True)
     
-    # Auto pairs counts in RR
+    # Auto pairs counts in RR i.e. random catalog
     autocorr=1
     RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, rand_RA, rand_DEC, rand_Dist,
+                        p.pimax, bins, crand_RA, crand_DEC, crand_Dist,
                         is_comoving_dist=True)
     
     # All the pair counts are done, get the angular correlation function

@@ -2,7 +2,7 @@
 # coding: utf-8
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import AbundanceMatching as amatch
 import Corrfunc
@@ -117,6 +117,8 @@ class MasterEquation:
         for i in range(p.nbins):
             for j in range(p.nbins):
                 for k in range(Nsub):
+                    IDS = np.where()
+#mean_obs = 
                     cov_matrix[i, j] += (wp_out[k, i]-mean_wp[i])*(wp_out[k, j]-mean_wp[j])
 
         cov_matrix = cov_matrix*(Nsub-1)/Nsub
@@ -221,7 +223,13 @@ class MasterEquation:
         """
         Pass
         """
-        pass
+        C1 = p.min_alpha < alpha < p.max_alpha
+        C2 = p.min_scatter < scatter < p.max_scatter
+        if C1 and C2:
+            return np.log(p.max_alpha-p.min_alpha) + np.log(p.max_scatter-p.min_scatter)
+        else:
+            return -np.infty
+            
 
         
 

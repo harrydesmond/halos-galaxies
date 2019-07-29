@@ -24,7 +24,7 @@ rank = comm.Get_rank()
 MPI_size = comm.Get_size()
 
 # Load galaxy catalog
-galaxy_catalog = np.load("../../Data/sdss_cutoff.npy")
+galaxy_catalog = np.load("../../Data/sdss_cutoffV2.npy")
 pixs_list = np.load("../../Data/gpixs_list.npy")
 
 # Set distance limits based on the cut catalog
