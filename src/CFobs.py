@@ -26,8 +26,7 @@ bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
 
 # Now assign each galaxy to a kmeans cluster that were precomputed on the random data set
 X = np.vstack([RA, DEC]).T
-with open("../Data/km_clusters.p", 'rb') as handle:
-    km = pickle.load(handle)
+km = p.load_pickle("../Data/km_clusters.p")
 
 rand_gal_labels = km.labels
 gal_labels = km.find_nearest(X)
@@ -117,12 +116,10 @@ output = dict()
 for name, dat in zip(["cbins", "mean_wp", "covmap_wp"], [cbins, mean_wp, cov_matrix]):
     output[name] = dat
 
-with open("../Data/Obs_CF.p", 'wb') as handle:
-    pickle.dump(output, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
-with open("../Data/Obs_CFsubsamples.p", 'wb') as handle:
-    pickle.dump(wp_out, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# Save the pickles
+p.dump_pickle(output, "../Data/Obs_CF.p")
+p.dump_pickle(wp_out, "../Data/Obs_CFsubsamples.p")
 
 # Let's make a plot!
 fig = plt.figure()

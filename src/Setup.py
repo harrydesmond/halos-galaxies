@@ -3,6 +3,7 @@
 # Script that is going to hold some constants and useful functions
 import math
 import numpy as np
+import pickle
 
 # Set constants
 h = 1
@@ -14,14 +15,14 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_mag' : -100, 'max_mag' : 100}
 
 # Random catalog settings
-rand_size_mult = 50
+rand_size_mult = 75
 min_alpha = 0.0
 max_alpha = 5
 min_scatter = 0.0
 max_scatter = 1
 
 boxsize = 400
-subside = 50
+subside = 40
 
 # Corrfunc settings
 nbins = 30
@@ -94,3 +95,29 @@ def bin_centers(edges):
     for i in range(len(edges)-1):
         cents.append((edges[i+1]+edges[i])/2)
     return np.array(cents)
+
+def dump_pickle(obj, filename):
+    """
+    Saves a pickle. Inputs are obj and filename
+    """
+    with open(filename, 'wb') as handle:
+        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
+ 
+def load_pickle(filename):
+    """
+    Loads a pickle. Input filename.
+    """
+    with open(filename, 'rb') as handle:
+        obj = pickle.load(handle)
+    return obj
+
+
+
+
+
+
+
+
+
+
+

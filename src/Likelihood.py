@@ -2,18 +2,17 @@
 # coding: utf-8
 import numpy as np
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import AbundanceMatching as amatch
 import Corrfunc
 import pickle
 from time import time
 import Setup as p
-#from astropy import constants as const, units as u
 
 class Posterior:
     """
-    Add a fancy description
+    A likelihood and prior for abundance matching parameters fitting to SDSS data.
     """
     def __init__(self):
         # Load and unpack the MF
@@ -23,6 +22,8 @@ class Posterior:
         self.halos = self.get_halos(np.load("../Data/halos_list.npy"), 9.8)
         self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
         self.nside = int(p.boxsize/p.subside)
+        
+        
 
     def __getAbundanceFunc(self, MFobj, mlim):
         """
@@ -108,9 +109,8 @@ class Posterior:
             wp_out.append(wp['wp'])
         
         wp_out = np.array(wp_out)
-        
-        with open("../../Data/Jackknife_sim.p", 'wb') as handle:
-            pickle.dump(wp_out, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # Save the pickle
+        p.dump_pickle(wp_out, "../../Data/Jackknife_sim.p")
         
         mean_wp = np.mean(wp_out, axis=0)
         cov_matrix = np.zeros((p.nbins, p.nbins))

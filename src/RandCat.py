@@ -95,8 +95,8 @@ if rank == 0:                           # At end, a single thread does things li
     # Now calculate the k-means centers 
     X = np.vstack([RA, DEC]).T
     km = kmeans_radec.kmeans_sample(X, p.ncent, maxiter=250, tol=1.0e-5)
-    with open("../Data/km_clusters.p", 'wb') as handle:
-        pickle.dump(km, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # Save the km object
+    p.dump(km, "../Data/km_clusters.p")
     
     hp.mollview(np.zeros(12), rot=180)
     for lab in range(p.ncent):
