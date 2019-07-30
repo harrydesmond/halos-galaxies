@@ -14,7 +14,7 @@ from sklearn.cluster import DBSCAN
 import Setup as p
 
 # Import observational data
-survey = fits.open('../BAM/Old/nsa_v1.fits')[1].data
+survey = fits.open('../../BAM/Old/nsa_v1.fits')[1].data
 mass_survey = survey['SERSIC_MASS']/p.h**2
 RA_survey = survey['RA'] # in degrees
 DEC_survey = survey['DEC'] # in degrees
@@ -26,17 +26,17 @@ print("Loaded galaxy catalog data!")
 # Make original plots of the survey data
 hp.mollview(np.zeros(12), rot=[180, 0, 0])
 hp.projscatter(np.pi/2-np.deg2rad(DEC_survey), np.deg2rad(RA_survey), s=0.001, c='red')
-plt.savefig("../Plots/Corrfunc/1_Mollview_survey.png")
+plt.savefig("../../Plots/Corrfunc/1_Mollview_survey.png")
 plt.close()
 
 plt.figure()
 plt.hist(Z_survey, bins='auto')
-plt.savefig("../Plots/Corrfunc/1_Hist_Z_survey.png")
+plt.savefig("../../Plots/Corrfunc/1_Hist_Z_survey.png")
 plt.close()
 
 plt.figure()
 plt.hist(RA_survey, bins='auto')
-plt.savefig("../Plots/Corrfunc/1_Hist_RA_survey.png")
+plt.savefig("../../Plots/Corrfunc/1_Hist_RA_survey.png")
 plt.close()
 
 # Perform cuts in Z, msol, and RA, DEC,  MAG_r
@@ -76,13 +76,13 @@ npixs_in = hp.ang2pix(p.nside, np.pi/2-np.deg2rad(DEC[IDS_keep]), np.deg2rad(RA[
 hp.mollview(np.zeros(12), rot=180)
 hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS_rem]), np.deg2rad(RA[IDS_rem]), s=1, c='red')
 hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS_keep]), np.deg2rad(RA[IDS_keep]), s=0.001, c='blue')
-plt.savefig("../Plots/Corrfunc/2_Mollview_remGals.png", dpi=180)
+plt.savefig("../../Plots/Corrfunc/2_Mollview_remGals.png", dpi=180)
 
 m = np.zeros(hp.nside2npix(p.nside))
 m[npixs_in] = -1
 m[npixs_out] = 1
 hp.mollview(m, rot=180)
-plt.savefig("../Plots/Corrfunc/2_Mollview_remGalspixs.png", dpi=180)
+plt.savefig("../../Plots/Corrfunc/2_Mollview_remGalspixs.png", dpi=180)
 
 plt.close()
 
@@ -107,23 +107,23 @@ for p in pixs:
 # Make a mollview map of pixels over which random catalog will be distributed
 hp.mollview(m, rot=[180, 0, 0])
 hp.projscatter(np.pi/2-np.deg2rad(DEC), np.deg2rad(RA), s=0.01, c='red', alpha=0.5)
-plt.savefig("../Plots/Corrfunc/2_Mollview_PixSelect.png", dpi=180)
+plt.savefig("../../Plots/Corrfunc/2_Mollview_PixSelect.png", dpi=180)
 plt.close()
 
 # Plot the distribution of cuts
 plt.figure()
 plt.hist(Dist, bins='auto')
-plt.savefig("../Plots/Corrfunc/2_Hist_Dist_cut.png")
+plt.savefig("../../Plots/Corrfunc/2_Hist_Dist_cut.png")
 plt.close()
 
 plt.figure()
 plt.hist(log_mass, bins='auto')
-plt.savefig("../Plots/Corrfunc/2_Hist_Mass_cut.png")
+plt.savefig("../../Plots/Corrfunc/2_Hist_Mass_cut.png")
 plt.close()
 
 plt.figure()
 plt.hist(MAG_r, bins='auto')
-plt.savefig("../Plots/Corrfunc/2_Hist_Mag_cut.png")
+plt.savefig("../../Plots/Corrfunc/2_Hist_Mag_cut.png")
 plt.close()
 
 
@@ -136,7 +136,7 @@ print("There  are {:d} galaxies of apparent magnitude less than {:.2f}".format(s
 
 plt.figure()
 plt.hist(m, bins='auto')
-plt.savefig("../Plots/Corrfunc/2_Hist_appMag_cut.png")
+plt.savefig("../../Plots/Corrfunc/2_Hist_appMag_cut.png")
 plt.close()
 
 # Save the cut galaxy catalog
@@ -147,7 +147,7 @@ galaxy_catalog['ra'] = np.ravel(RA)
 galaxy_catalog['dec'] = np.ravel(DEC)
 galaxy_catalog['dist'] = np.ravel(Dist)
 galaxy_catalog['mag_r'] = np.ravel(MAG_r)
-np.save('../Data/sdss_cutoff.npy', galaxy_catalog)
-pixs_list = np.save("../Data/gpixs_list.npy", np.unique(npixs_in))
+np.save('../../Data/sdss_cutoff.npy', galaxy_catalog)
+pixs_list = np.save("../../Data/gpixs_list.npy", np.unique(npixs_in))
 
 print("Done with cuts! Will need to run this through the jupyter notebook and check visually.")

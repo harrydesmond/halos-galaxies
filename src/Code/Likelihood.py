@@ -2,7 +2,7 @@
 # coding: utf-8
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import AbundanceMatching as amatch
 import Corrfunc
@@ -16,14 +16,18 @@ class Posterior:
     """
     def __init__(self):
         # Load and unpack the MF
-        MFobj = np.loadtxt("../BAM/SMF_bin_abundance.dat")
+        MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
         self.af = self.__getAbundanceFunc(MFobj, mlim=6.8)
         # Load in the list of halos (this list assumed to be already edited..)
-        self.halos = self.get_halos(np.load("../Data/halos_list.npy"), 9.8)
+        self.halos = self.get_halos(np.load("../../Data/halos_list.npy"), 9.8)
         self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
         self.nside = int(p.boxsize/p.subside)
+        # Load observational correlation function
+        obs_CF = p.load_pickle("../../Data/Obs_CF.p") 
+        self.obs_wp = obs_CF["mean_wp"]
+        self.obs_covmat = obs_CF["covmap_wp"]
         
-        
+
 
     def __getAbundanceFunc(self, MFobj, mlim):
         """
@@ -78,7 +82,8 @@ class Posterior:
         for __ in range(Niter):
             cat_this = amatch.add_scatter(catalog_deconv, scatter)
             cat_this = amatch.rematch(cat_this, catalog, self.af._x_flipped)
-
+            
+            # Save the catalog.. Create a structured numpy array
             mask = (~np.isnan(cat_this)) & (cat_this>9.8)
             N = np.where(mask == True)[0].size
             cat_out = np.zeros(N, dtype={'names':('mvir', 'cat', 'x', 'y', 'z', 'gbins'),
@@ -138,7 +143,7 @@ class Posterior:
             ax.set_ylim(bottom=10**(-1), top=10**(4))
             ax.legend()
             plt.tight_layout()   
-            plt.savefig("../Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
+            plt.savefig("../../Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
             plt.close()
 
 
@@ -215,9 +220,6 @@ class Posterior:
         else:
             return -np.infty
             
-
-        
-
 
 def main():
     print("Entering main:")

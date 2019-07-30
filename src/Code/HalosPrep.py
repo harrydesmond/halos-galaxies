@@ -24,7 +24,7 @@ def vvir_from_cosmology(halos, cosmology):
 # Cosmological parameters
 cosmology = {u'h': 0.688, u'omega_lambda_0': 0.705, u'omega_k_0': 0.0, u'omega_M_0': 0.295}
 # Load in the halos data file
-halos = np.load("../BAM/hlist_1.00000.npy")
+halos = np.load("../../BAM/hlist_1.00000.npy")
 
 print("Finished loading things")
 
@@ -53,6 +53,6 @@ data = [mvir, conc, x_pos, y_pos, z_pos, vmax, vvir]
 for name, d in zip(names, data):
     halos_catalog[name] = d
 
-np.save("../Data/halos_list.npy", halos_catalog)
+np.save("../../Data/halos_list.npy", halos_catalog)
 
 print("Finished with everything")
