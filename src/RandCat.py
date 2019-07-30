@@ -24,8 +24,8 @@ rank = comm.Get_rank()
 MPI_size = comm.Get_size()
 
 # Load galaxy catalog
-galaxy_catalog = np.load("../../Data/sdss_cutoffV2.npy")
-pixs_list = np.load("../../Data/gpixs_list.npy")
+galaxy_catalog = np.load("../Data/sdss_cutoffV2.npy")
+pixs_list = np.load("../Data/gpixs_list.npy")
 
 # Set distance limits based on the cut catalog
 Dist = galaxy_catalog["dist"]
@@ -95,17 +95,17 @@ if rank == 0:                           # At end, a single thread does things li
     # Now calculate the k-means centers 
     X = np.vstack([RA, DEC]).T
     km = kmeans_radec.kmeans_sample(X, p.ncent, maxiter=250, tol=1.0e-5)
-    with open("../../Data/km_clusters.p", 'wb') as handle:
+    with open("../Data/km_clusters.p", 'wb') as handle:
         pickle.dump(km, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     hp.mollview(np.zeros(12), rot=180)
     for lab in range(p.ncent):
         IDS = np.where(km.labels == lab)
         hp.projscatter(np.pi/2-np.deg2rad(DEC[IDS]), np.deg2rad(RA[IDS]), s=1)
-    plt.savefig("../../Plots/Corrfunc/Clustering.png", dpi=240)
+    plt.savefig("../Plots/Corrfunc/Clustering.png", dpi=240)
     plt.close()
     
-    np.save('../../Data/randCat_matchnsa.npy', random_catalog)
+    np.save('../Data/randCat_matchnsa.npy', random_catalog)
     
     print("Done with generating the catalog of size {}!".format(RA.size))
 
@@ -114,12 +114,12 @@ if rank == 0:                           # At end, a single thread does things li
    # Make plots to check everything is going acccording to plan :-O
     plt.figure()
     plt.hist(dist, bins='auto')
-    plt.savefig("../../Plots/Corrfunc/3_Hist_randDist.png")
+    plt.savefig("../Plots/Corrfunc/3_Hist_randDist.png")
     plt.close()
     
     print("And don't forget the HealPy plot!")  
     # And a HealPy map to plot galaxies pos..
     hp.mollview(np.zeros(12), rot=[180, 0, 0])
     hp.projscatter(np.pi/2-np.deg2rad(DEC), np.deg2rad(RA), s=0.001, c='red')
-    plt.savefig("../../Plots/Corrfunc/3_Mollview_rand_cat.png")
+    plt.savefig("../Plots/Corrfunc/3_Mollview_rand_cat.png")
     plt.close() 

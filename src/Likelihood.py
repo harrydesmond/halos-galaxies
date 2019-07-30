@@ -11,16 +11,16 @@ from time import time
 import Setup as p
 #from astropy import constants as const, units as u
 
-class MasterEquation:
+class Posterior:
     """
     Add a fancy description
     """
     def __init__(self):
         # Load and unpack the MF
-        MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
+        MFobj = np.loadtxt("../BAM/SMF_bin_abundance.dat")
         self.af = self.__getAbundanceFunc(MFobj, mlim=6.8)
         # Load in the list of halos (this list assumed to be already edited..)
-        self.halos = self.get_halos(np.load("../../Data/halos_list.npy"), 9.8)
+        self.halos = self.get_halos(np.load("../Data/halos_list.npy"), 9.8)
         self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
         self.nside = int(p.boxsize/p.subside)
 
@@ -138,7 +138,7 @@ class MasterEquation:
             ax.set_ylim(bottom=10**(-1), top=10**(4))
             ax.legend()
             plt.tight_layout()   
-            plt.savefig("../../Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
+            plt.savefig("../Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
             plt.close()
 
 
@@ -172,21 +172,6 @@ class MasterEquation:
         cov_matrix = cov_matrix/len(catalogs)
         return cov_matrix, wp_mean
 
-#    def test_subvolumes(self):
-#        subsides = [25, 40, 50, 80, 100]
-#        cov_out = list()
-#        for subside in subsides:
-#            self.nside = int(p.boxsize/subside)
-#            self.halos = self.get_halos(np.load("../../Data/halos_list.npy"), 9.8, subside)
-#            print("Max bin for subside {} is {}".format(subside, np.max(self.halos['gbins'])))
-#
-#            catalog = self.abundance_match(0.5, 0.16, Niter=1)[0]
-#            mwp, cvmat = self.jackknife_sim(catalog)
-#            cov_out.append(cvmat)
-#        
-#        with open("../../Data/Subvoltest.p", 'wb') as handle:
-#            pickle.dump(cov_out, handle, protocol=pickle.HIGHEST_PROTOCOL)
-#
     def loglikelihood(self, alpha, scatter):
         """
 
