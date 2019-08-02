@@ -4,6 +4,7 @@
 import math
 import numpy as np
 import pickle
+import joblib
 
 # Set constants
 h = 1
@@ -17,9 +18,9 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
 # Random catalog settings
 rand_size_mult = 75
 min_alpha = 0.0
-max_alpha = 5
+max_alpha = 1.25
 min_scatter = 0.0
-max_scatter = 1
+max_scatter = 0.3
 
 boxsize = 400
 subside = 40
@@ -32,7 +33,7 @@ ncent = 100
 
 pimax = 40
 cosmology = 2
-nthreads = 14
+nthreads = 8
 
 # Reddick data (approximate...)
 xr = [0.128622422089606, 0.20684122410707673, 0.3326403703585226,
@@ -101,14 +102,14 @@ def dump_pickle(obj, filename):
     Saves a pickle. Inputs are obj and filename
     """
     with open(filename, 'wb') as handle:
-        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        joblib.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
  
 def load_pickle(filename):
     """
     Loads a pickle. Input filename.
     """
     with open(filename, 'rb') as handle:
-        obj = pickle.load(handle)
+        obj = joblib.load(handle)
     return obj
 
 

@@ -2,11 +2,12 @@
 # coding: utf-8
 import numpy as np
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import AbundanceMatching as amatch
 import Corrfunc
 import pickle
+from pathos.pools import ProcessPool
 from time import time
 import Setup as p
 
@@ -16,14 +17,14 @@ class Posterior:
     """
     def __init__(self):
         # Load and unpack the MF
-        MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
-        self.af = self.__getAbundanceFunc(MFobj, mlim=6.8)
+        MFobj = np.loadtxt("/mnt/zfsusers/rstiskalek/BAM/SMF_bin_abundance.dat")
+        self.af = self.__getAbundanceFunc(MFobj, mlim=7.5)
         # Load in the list of halos (this list assumed to be already edited..)
-        self.halos = self.get_halos(np.load("../../Data/halos_list.npy"), 9.8)
+        self.halos = self.get_halos(np.load("/mnt/zfsusers/rstiskalek/Data/halos_list.npy"), 7.5)
         self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
         self.nside = int(p.boxsize/p.subside)
         # Load observational correlation function
-        obs_CF = p.load_pickle("../../Data/Obs_CF.p") 
+        obs_CF = p.load_pickle("/mnt/zfsusers/rstiskalek/Data/Obs_CF.p") 
         self.obs_wp = obs_CF["mean_wp"]
         self.obs_covmat = obs_CF["covmap_wp"]
         
@@ -64,7 +65,7 @@ class Posterior:
         return halos_catalog
 
 
-    def abundance_match(self, alpha, scatter, Niter):
+    def abundance_match(self, alpha, scatter, Niter, ncores=1):
         """
         Does abundance matching with some alpha and scatter. Produces "niter" different catalogs due to
         random variations.
@@ -73,13 +74,13 @@ class Posterior:
         plist = self.halos['vvir']*(self.halos['vmax']/self.halos['vvir'])**alpha
         # Calculate the number densities
         nd_halos = amatch.calc_number_densities(plist, p.boxsize)
-        self.af.deconvolute(scatter, repeat=20)
+        self.af.deconvolute(scatter, repeat=40)
 
         catalog = self.af.match(nd_halos)
         catalog_deconv = self.af.match(nd_halos, scatter, False)
+        pool = ProcessPool(nodes=ncores)
 
-        res = list()
-        for __ in range(Niter):
+        def add_scatter(i):
             cat_this = amatch.add_scatter(catalog_deconv, scatter)
             cat_this = amatch.rematch(cat_this, catalog, self.af._x_flipped)
             
@@ -94,12 +95,17 @@ class Posterior:
             cat_out['y'] = self.halos['y'][mask]
             cat_out['z'] = self.halos['z'][mask]
             cat_out['gbins'] = self.halos['gbins'][mask]
+            return cat_out
+        res = pool.map(add_scatter, range(Niter))
 
-            res.append(cat_out)
+        pool.close()
+		pool.join()
+		pool.clear()
 
-        return res
-    
-    def jackknife_sim(self, catalog, plots=False):
+        return res    
+
+
+    def jackknife_sim(self, catalog, nthreads=p.nthreads, plots=False):
         """
         Perform jackknifing on a single abundance matching realisation.
         """
@@ -110,20 +116,17 @@ class Posterior:
             XX = catalog['x'][IDS]
             YY = catalog['y'][IDS]
             ZZ = catalog['z'][IDS]
-            wp = Corrfunc.theory.wp(boxsize=p.boxsize, pimax=p.pimax, nthreads=p.nthreads, binfile=self.rp_bins, X=XX, Y=YY, Z=ZZ)
+            wp = Corrfunc.theory.wp(boxsize=p.boxsize, pimax=p.pimax, nthreads=nthreads, binfile=self.rp_bins, X=XX, Y=YY, Z=ZZ)
             wp_out.append(wp['wp'])
         
         wp_out = np.array(wp_out)
-        # Save the pickle
-        p.dump_pickle(wp_out, "../../Data/Jackknife_sim.p")
         
         mean_wp = np.mean(wp_out, axis=0)
         cov_matrix = np.zeros((p.nbins, p.nbins))
+
         for i in range(p.nbins):
             for j in range(p.nbins):
                 for k in range(Nsub):
-                    IDS = np.where()
-#mean_obs = 
                     cov_matrix[i, j] += (wp_out[k, i]-mean_wp[i])*(wp_out[k, j]-mean_wp[j])
 
         cov_matrix = cov_matrix*(Nsub-1)/Nsub
@@ -143,13 +146,13 @@ class Posterior:
             ax.set_ylim(bottom=10**(-1), top=10**(4))
             ax.legend()
             plt.tight_layout()   
-            plt.savefig("../../Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
+            plt.savefig("/mnt/zfsusers/rstiskalek/Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
             plt.close()
 
 
         return mean_wp, cov_matrix
 
-    def stoch_covmat_mean(self, catalogs, plots=False):
+    def stoch_covmat_mean(self, catalogs, nthreads = p.nthreads, plots=False):
         """
         Returns the stochastic covariance matrix and mean wp due to variations in random catalogs.
         """
@@ -159,13 +162,12 @@ class Posterior:
             XX = catalog['x']
             YY = catalog['y']
             ZZ = catalog['z']
-            wp = Corrfunc.theory.wp(boxsize=p.boxsize, pimax=p.pimax, nthreads=p.nthreads, binfile=self.rp_bins,
+            wp = Corrfunc.theory.wp(boxsize=p.boxsize, pimax=p.pimax, nthreads=nthreads, binfile=self.rp_bins,
                                     X=XX, Y=YY, Z=ZZ)
             wps.append(wp['wp'])
         
         wps = np.array(wps)
         wp_mean = np.mean(wps, axis=0)
-        print(wps.shape, wp_mean.shape)
         
         # Calculate the covariance matrix
         cov_matrix = np.zeros((p.nbins, p.nbins))
@@ -183,31 +185,27 @@ class Posterior:
         """
         # OK. First generate Niter random catalogs to quantify random variations
         s = time()
-        catalogs = self.abundance_match(alpha, scatter, Niter=1)
+        catalogs = self.abundance_match(alpha, scatter, Niter=25)
         print("Generated catalogs in {} seconds".format(time()-s))
-#        # And store the covariance matrix and mean due to these variations
-#        s = time()
-#        stochastic_covmat, stochastic_mean = self.stoch_covmat_mean(catalogs)
-#        print("Did stochastic statistics in {} seconds".format(time()-s))
+
+        s = time()
+        stochastic_covmat, stochastic_mean = self.stoch_covmat_mean(catalogs)
+        print("Did stochastic statistics in {} seconds".format(time()-s))
         # Calculate jackknifed covariance matrix from the AM mock. Do this only for the first catalog
         s = time()
-        __, jackknife_covmat = self.jackknife_sim(catalogs[0], plots=True)
+        __, jackknife_covmat = self.jackknife_sim(catalogs[0], plots=False)
         print("Did jackknifing in {} seconds".format(time()-s))
 
-#        # Sum up the covariance matrices. Pretend that I already have calculated the covmat from observation and it works.. 
-#        obs_covmat = np.zeros((p.nbins, p.nbins))
-#        #Import this value...
-#        obs_mean = np.ones(30)
-##        covmat = stochastic_covmat+jackknife_covmat+obs_covmat
-#        
-#        # Get the log likelihood
-#        k = stochastic_mean.size
-#        det = np.linalg.det(covmat)
-#        inv = np.linalg.inv(covmat)
-#        diff = (stochastic_mean - obs_mean).reshape(k, 1)
-#        exponent = float(np.matmul(np.matmul(diff.T, covmat), diff))
-        return 'done.'        
-#        return -0.5*k*np.log(2*np.pi)-0.5*np.log(det) - 0.5*exponent
+        # Sum up the covariance matrices
+        covmat = stochastic_covmat + jackknife_covmat + self.obs_covmat
+        
+        # Get the log likelihood
+        k = p.nbins
+        det = np.linalg.det(covmat)
+        inv = np.linalg.inv(covmat)
+        diff = (stochastic_mean - self.obs_wp).reshape(k, 1)
+        exponent = float(np.matmul(np.matmul(diff.T, covmat), diff))
+        return -0.5*k*np.log(2*np.pi) - 0.5*np.log(det) - 0.5*exponent
     
     def logprior(self, alpha, scatter):
         """
@@ -223,7 +221,7 @@ class Posterior:
 
 def main():
     print("Entering main:")
-    model = MasterEquation()
+    model = Posterior()
     print("Initiated the model.")
     print('ll', model.loglikelihood(0.5, 0.16))
 
