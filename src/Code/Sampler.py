@@ -38,6 +38,7 @@ if resume == None:
 model = Model()
 print("Initiated the model. Starting!")
 
+# Define log posterior
 def logposterior(theta):
     lp = model.logprior(theta)
     if not np.isfinite(lp):
