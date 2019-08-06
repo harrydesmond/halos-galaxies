@@ -2,8 +2,9 @@
 # coding: utf-8
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import scipy.interpolate
 import AbundanceMatching as amatch
 import Corrfunc
 import pickle
@@ -11,7 +12,7 @@ from pathos.pools import ProcessPool
 from time import time
 import Setup as p
 
-class Posterior:
+class Model:
     """
     A likelihood and prior for abundance matching parameters fitting to SDSS data.
     """
@@ -22,12 +23,15 @@ class Posterior:
         # Load in the list of halos (this list assumed to be already edited..)
         self.halos = self.get_halos(np.load("/mnt/zfsusers/rstiskalek/Data/halos_list.npy"), 7.5)
         self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
+        self.bins_arr = np.arange(p.nbins)
         self.nside = int(p.boxsize/p.subside)
         # Load observational correlation function
         obs_CF = p.load_pickle("/mnt/zfsusers/rstiskalek/Data/Obs_CF.p") 
         self.obs_wp = obs_CF["mean_wp"]
         self.obs_covmat = obs_CF["covmap_wp"]
-        
+        # Load the precomputed covariance matrices
+        self.covmat_interp = self.interp_covmat()
+
 
 
     def __getAbundanceFunc(self, MFobj, mlim):
@@ -39,6 +43,20 @@ class Posterior:
         af = amatch.AbundanceFunction(MFobj[:, 0][IDS], MFobj[:, 1][IDS], (mlim, 14),
                         faint_end_first=True)
         return af
+    
+    def interp_covmat(self, method='nearest'):
+        """
+        Load the precomputed values of covariance matrix on a grid and creates and interpolation object
+        """
+        data_jack = p.load_pickle("../../Data/Train_jackknife_covmats.p")
+        #data_stoch = p.load_pickle("../../Data/Train_stoch_covmats.p")
+        XX = data_jack['alpha']
+        YY = data_jack['scatter']
+        z_covmat = data_jack['covmat']
+        f = scipy.interpolate.RegularGridInterpolator(points=(np.unique(YY), np.unique(XX), self.bins_arr, self.bins_arr),
+                                                      values=z_covmat, method='nearest')
+        return f
+
 
     def get_halos(self, halos_object, cutoff, subside=p.subside):
         """
@@ -64,8 +82,18 @@ class Posterior:
 
         return halos_catalog
 
+    def comp_simcovmat(self, alpha, scatter):
+        """
+        Computes the covariance matrix given the interpolation object
+        """
+        covmat = np.zeros(shape=(30, 30))
+        for i in range(30):
+            for j in range(30):
+                covmat[i, j] = self.covmat_interp((scatter, alpha, i, j))
+        return covmat
 
-    def abundance_match(self, alpha, scatter, Niter, ncores=1):
+
+    def abundance_match(self, alpha, scatter, Niter):
         """
         Does abundance matching with some alpha and scatter. Produces "niter" different catalogs due to
         random variations.
@@ -74,17 +102,12 @@ class Posterior:
         plist = self.halos['vvir']*(self.halos['vmax']/self.halos['vvir'])**alpha
         # Calculate the number densities
         nd_halos = amatch.calc_number_densities(plist, p.boxsize)
-        self.af.deconvolute(scatter, repeat=40)
 
-        catalog = self.af.match(nd_halos)
-        catalog_deconv = self.af.match(nd_halos, scatter, False)
-        pool = ProcessPool(nodes=ncores)
-
-        def add_scatter(i):
-            cat_this = amatch.add_scatter(catalog_deconv, scatter)
-            cat_this = amatch.rematch(cat_this, catalog, self.af._x_flipped)
-            
-            # Save the catalog.. Create a structured numpy array
+        res = list()
+        for __ in range(Niter):
+            self.af.deconvolute(scatter, 40)
+            cat_this = self.af.match(nd_halos, scatter)
+            # Eliminate NaNs and galaxies with mass lower cut
             mask = (~np.isnan(cat_this)) & (cat_this>9.8)
             N = np.where(mask == True)[0].size
             cat_out = np.zeros(N, dtype={'names':('mvir', 'cat', 'x', 'y', 'z', 'gbins'),
@@ -95,14 +118,10 @@ class Posterior:
             cat_out['y'] = self.halos['y'][mask]
             cat_out['z'] = self.halos['z'][mask]
             cat_out['gbins'] = self.halos['gbins'][mask]
-            return cat_out
-        res = pool.map(add_scatter, range(Niter))
+            
+            res.append(cat_out)
 
-        pool.close()
-		pool.join()
-		pool.clear()
-
-        return res    
+        return res
 
 
     def jackknife_sim(self, catalog, nthreads=p.nthreads, plots=False):
@@ -179,51 +198,59 @@ class Posterior:
         cov_matrix = cov_matrix/len(catalogs)
         return cov_matrix, wp_mean
 
-    def loglikelihood(self, alpha, scatter):
+    def loglikelihood(self, theta):
         """
+        The natural logarithm of the likelihood. Model assumes Gaussian. Note: ignores
+        normalisation.
 
+        Args:
+            theta (tuple): individual parameter values (alpha, scatter)
         """
-        # OK. First generate Niter random catalogs to quantify random variations
-        s = time()
-        catalogs = self.abundance_match(alpha, scatter, Niter=25)
-        print("Generated catalogs in {} seconds".format(time()-s))
+        alpha, scatter = theta
+        simcovmat = self.comp_simcovmat(alpha, scatter)
+        covmat = simcovmat + self.obs_covmat
 
-        s = time()
-        stochastic_covmat, stochastic_mean = self.stoch_covmat_mean(catalogs)
-        print("Did stochastic statistics in {} seconds".format(time()-s))
-        # Calculate jackknifed covariance matrix from the AM mock. Do this only for the first catalog
-        s = time()
-        __, jackknife_covmat = self.jackknife_sim(catalogs[0], plots=False)
-        print("Did jackknifing in {} seconds".format(time()-s))
-
-        # Sum up the covariance matrices
-        covmat = stochastic_covmat + jackknife_covmat + self.obs_covmat
+        catalog = self.abundance_match(alpha, scatter, Niter=1)
+        __, wp_mean = self.stoch_covmat_mean(catalog)
         
         # Get the log likelihood
-        k = p.nbins
         det = np.linalg.det(covmat)
         inv = np.linalg.inv(covmat)
-        diff = (stochastic_mean - self.obs_wp).reshape(k, 1)
-        exponent = float(np.matmul(np.matmul(diff.T, covmat), diff))
-        return -0.5*k*np.log(2*np.pi) - 0.5*np.log(det) - 0.5*exponent
+        diff = (wp_mean - self.obs_wp).reshape(p.nbins, 1)
+        exponent = float(np.matmul(np.matmul(diff.T, inv), diff))
+        return -0.5*(np.log(det) + exponent)
     
-    def logprior(self, alpha, scatter):
+    def logprior(self, theta):
         """
-        Pass
+        The natural logarithm of the prior probability. Note: ignores normalisation.
+        Hence returns 0 for uniform distribution.
+
+        Args:
+            theta (tuple): individual parameter values (alpha, scatter)
         """
-        C1 = p.min_alpha < alpha < p.max_alpha
-        C2 = p.min_scatter < scatter < p.max_scatter
-        if C1 and C2:
-            return np.log(p.max_alpha-p.min_alpha) + np.log(p.max_scatter-p.min_scatter)
+        # Unpack the values
+        alpha, scatter = theta
+        # Check if withing range
+        cond1 = p.min_alpha < alpha < p.max_alpha
+        cond2 = p.min_scatter < scatter < p.max_scatter
+        if cond1 and cond2:
+            return 0.0 
         else:
-            return -np.infty
-            
+            return -np.inf
+
+
 
 def main():
     print("Entering main:")
-    model = Posterior()
+    model = Model()
     print("Initiated the model.")
-    print('ll', model.loglikelihood(0.5, 0.16))
+    start = time()
+    ll = model.loglikelihood(0.5, 0.16)
+    lp = model.logprior(0.5, 0.16)
+    print(ll)
+    print("Sampled the likehood in {}.".format(time()-start))
+
+
 
 if __name__ == '__main__':
     main()

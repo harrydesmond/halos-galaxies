@@ -7,10 +7,10 @@ import Likelihood
 
 # Initiate my likelihood model
 model = Likelihood.Posterior()
-ncores = 12
+ncores = 6
 
-Nalphas = 100
-Nscatters = 15
+Nalphas = 25
+Nscatters = 25
 alphas = np.linspace(p.min_alpha, p.max_alpha, Nalphas)
 scatters = np.linspace(p.min_scatter, p.max_scatter, Nscatters)
 

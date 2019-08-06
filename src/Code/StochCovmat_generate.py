@@ -10,8 +10,8 @@ model = Likelihood.Posterior()
 ncore = 6
 
 # How dense should the grid be
-Nalphas = 100
-Nscatters = 15
+Nalphas = 25
+Nscatters = 25
 alphas = np.linspace(p.min_alpha, p.max_alpha, Nalphas)
 scatters = np.linspace(p.min_scatter, p.max_scatter, Nscatters)
 
@@ -20,7 +20,7 @@ XX, YY = np.meshgrid(alphas, scatters)
 ndim1, ndim2 = XX.shape
 
 # Calculate the stochastic covariance matrix at these values
-Niter = 75
+Niter = 40
 ntot = XX.size
 
 means = np.zeros(shape=(ndim1, ndim2, p.nbins))

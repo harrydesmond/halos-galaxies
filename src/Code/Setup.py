@@ -15,6 +15,9 @@ lims = {'min_z' : 0.005, 'max_z' : 0.064,
         'min_dec' : -4.8, 'max_dec' : 75,
         'min_mag' : -100, 'max_mag' : 100}
 
+# MCMC stuff
+Nens = 100
+
 # Random catalog settings
 rand_size_mult = 75
 min_alpha = 0.0
@@ -23,7 +26,7 @@ min_scatter = 0.0
 max_scatter = 0.3
 
 boxsize = 400
-subside = 40
+subside = 25
 
 # Corrfunc settings
 nbins = 30
@@ -111,14 +114,3 @@ def load_pickle(filename):
     with open(filename, 'rb') as handle:
         obj = joblib.load(handle)
     return obj
-
-
-
-
-
-
-
-
-
-
-
