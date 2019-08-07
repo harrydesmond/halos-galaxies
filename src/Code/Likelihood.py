@@ -22,7 +22,7 @@ class Model:
         baryonic mass etc. requires changing some codes within this and precomputing a plenty of things.
         A well needed description is about to be written in README.
     """
-    def __init__(self, MFpath, halos_path, ):
+    def __init__(self):
         # Load and unpack the MF
         MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
         self.af = self.__getAbundanceFunc(MFobj, mlim=7.5)
@@ -55,7 +55,9 @@ class Model:
     
     def interp_covmat(self, method='nearest'):
         """
-        Loads the precomputed values of covariance matrix on a grid and returns an interpolation object.
+        Loads the precomputed values of covariance matrix on a grid and returns the interpolation object.
+
+        Note: needs to add the stoch covmat
 
         Args:
             method : interpolation kind. Types: 'nearest', 'linear'
@@ -66,21 +68,20 @@ class Model:
         YY = data_jack['scatter']
         z_covmat = data_jack['covmat']
         return scipy.interpolate.RegularGridInterpolator(points=(np.unique(YY), np.unique(XX), self.bins_arr, self.bins_arr),
-                                 values=z_covmat, method='nearest')
+                                 values=z_covmat, method=method)
 
 
-    def get_halos(self, halos_object, cutoff, subside=p.subside):
+    def get_halos(self, halos_object, cutoff):
         """
         Bins the halos, applies some cut on minimum halos mass and creates a new struct array
         which also contains the bin in which each halo located. Useful for jackknifing.
 
         Args:
-            halos_oject
-            cutoff
-            subside
+            halos_object : numpy structures array containing the halo properties
+            cutoff : log10 cutoff on minimum halo mass to be used in abundance matching
         """
         # Calculate the box position in a subvolume
-        edges = np.arange(0, p.boxsize+subside, subside)
+        edges = np.arange(0, p.boxsize+p.subside, p.subside)
         # Figure out into which boxes galaxies belong
         lx = np.digitize(halos_object['x'], edges)-1
         ly = np.digitize(halos_object['y'], edges)-1
@@ -101,19 +102,30 @@ class Model:
 
     def comp_simcovmat(self, alpha, scatter):
         """
-        Computes the covariance matrix given the interpolation object
+        Returns the covariance matrix from the interpolation object.
+
+        Args:
+            alpha : (float) halo matching proxy parameter
+            scatter : (float) halo matching proxy parameter
         """
-        covmat = np.zeros(shape=(30, 30))
-        for i in range(30):
-            for j in range(30):
+        covmat = np.zeros(shape=(p.nbins, p.nbins))
+        for i in range(p.nbins):
+            for j in range(p.nbins):
                 covmat[i, j] = self.covmat_interp((scatter, alpha, i, j))
         return covmat
 
 
     def abundance_match(self, alpha, scatter, Niter):
         """
-        Does abundance matching with some alpha and scatter. Produces "niter" different catalogs due to
-        random variations.
+        Returns a list of abundance matching catalogs of given alpha and scatter.
+
+        Args:
+            alpha : (float) halo matching proxy parameter
+            scatter : (float) halo matching proxy parameter
+            Niter : (int) number of catalogs to be calculated
+        
+        Note:
+            This function is single core only. Might bottleneck some calculations
         """
         # Halo matching proxy
         plist = self.halos['vvir']*(self.halos['vmax']/self.halos['vvir'])**alpha
@@ -141,9 +153,14 @@ class Model:
         return res
 
 
-    def jackknife_sim(self, catalog, nthreads=p.nthreads, plots=False):
+    def jackknife_sim(self, catalog, nthreads=p.nthreads):
         """
-        Perform jackknifing on a single abundance matching realisation.
+        Jackknifes the simulation box and returns the mean projected correlation function
+        and the covariance matrix. Does this on a single catalog.
+
+        Args:
+            catalog : abundance matching catalog
+            nthreads : (int) nthreads used for corrfunc calculation
         """
         Nsub = self.nside**2
         wp_out = list()
@@ -167,30 +184,16 @@ class Model:
 
         cov_matrix = cov_matrix*(Nsub-1)/Nsub
 
-        if plots ==True:
-            cbins = p.bin_centers(self.rp_bins)
-            std = np.sqrt(np.diagonal(cov_matrix))
-
-            fig = plt.figure()
-            ax = plt.axes()
-            ax.set_xscale("log")
-            ax.set_yscale("log")
-            ax.errorbar(cbins, mean_wp, yerr=std, label="Simulated CF")
-            ax.plot(p.xr, p.yr, label='Data from Reddick', marker='o')
-            ax.set_xlabel(r'$r_p$')
-            ax.set_ylabel(r'$w_p$')
-            ax.set_ylim(bottom=10**(-1), top=10**(4))
-            ax.legend()
-            plt.tight_layout()   
-            plt.savefig("/mnt/zfsusers/rstiskalek/Plots/Corrfunc/4_CFcomparSIM.png", dpi=180)
-            plt.close()
-
-
         return mean_wp, cov_matrix
 
-    def stoch_covmat_mean(self, catalogs, nthreads = p.nthreads, plots=False):
+    def stoch_covmat_mean(self, catalogs, nthreads=p.nthreads):
         """
-        Returns the stochastic covariance matrix and mean wp due to variations in random catalogs.
+        Calculates the mean and covariance matrix for a list of catalogs. Assumes catalogs are independent for
+        1/N normalisation. Returns the mean CF and the covariance matrix
+
+        Args:
+            catalogs : (list) list of abundance matched catalogs
+            nthreads : (int) number of cores to be used for CF calculation
         """
         # First calculate the wp for each catalog
         wps = list()
@@ -223,17 +226,22 @@ class Model:
         Args:
             theta (tuple): individual parameter values (alpha, scatter)
         """
+        # Unpack the parameters
         alpha, scatter = theta
+        # Calculate the interpolated covariance matrix
         simcovmat = self.comp_simcovmat(alpha, scatter)
+        # Sum all covariance matrices
         covmat = simcovmat + self.obs_covmat
-
+        # At the moment this bit is unclear. It is very slow and perhaps would be better
+        # to interpolate this instead. 
         catalog = self.abundance_match(alpha, scatter, Niter=1)
         __, wp_mean = self.stoch_covmat_mean(catalog)
-        
-        # Get the log likelihood
+        # Determinant and inverse of the covariance matrix
         det = np.linalg.det(covmat)
         inv = np.linalg.inv(covmat)
+        # Difference between parameter and observed correlation function
         diff = (wp_mean - self.obs_wp).reshape(p.nbins, 1)
+        # Do the matrix product for the exponent part of the multivariate Gaussian likelihood
         exponent = float(np.matmul(np.matmul(diff.T, inv), diff))
         return -0.5*(np.log(det) + exponent)
     
@@ -244,10 +252,13 @@ class Model:
 
         Args:
             theta (tuple): individual parameter values (alpha, scatter)
+
+        Note:
+            For emcee the uniform prior is neglected.
         """
         # Unpack the values
         alpha, scatter = theta
-        # Check if withing range
+        # Check if withing range. Assuming uniform prior
         cond1 = p.min_alpha < alpha < p.max_alpha
         cond2 = p.min_scatter < scatter < p.max_scatter
         if cond1 and cond2:
