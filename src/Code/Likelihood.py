@@ -14,29 +14,38 @@ import Setup as p
 
 class Model:
     """
-    A likelihood and prior for abundance matching parameters fitting to SDSS data.
+    A likelihood and prior for abundance matching parameters fitting to the given precomputed projected
+    two-point correlation function.
+    
+    Note:
+        The parameters are rather inflexible right now. Changing from stellar mass abundance matching to
+        baryonic mass etc. requires changing some codes within this and precomputing a plenty of things.
+        A well needed description is about to be written in README.
     """
-    def __init__(self):
+    def __init__(self, MFpath, halos_path, ):
         # Load and unpack the MF
-        MFobj = np.loadtxt("/mnt/zfsusers/rstiskalek/BAM/SMF_bin_abundance.dat")
+        MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
         self.af = self.__getAbundanceFunc(MFobj, mlim=7.5)
         # Load in the list of halos (this list assumed to be already edited..)
-        self.halos = self.get_halos(np.load("/mnt/zfsusers/rstiskalek/Data/halos_list.npy"), 7.5)
+        self.halos = self.get_halos(np.load("../../Data/halos_list.npy"), 7.5)
         self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
         self.bins_arr = np.arange(p.nbins)
         self.nside = int(p.boxsize/p.subside)
         # Load observational correlation function
-        obs_CF = p.load_pickle("/mnt/zfsusers/rstiskalek/Data/Obs_CF.p") 
+        obs_CF = p.load_pickle("../../Data/Obs_CF.p") 
         self.obs_wp = obs_CF["mean_wp"]
         self.obs_covmat = obs_CF["covmap_wp"]
         # Load the precomputed covariance matrices
         self.covmat_interp = self.interp_covmat()
 
 
-
     def __getAbundanceFunc(self, MFobj, mlim):
         """
-        Unpack the MF, make some cut to eliminate unreliable data and return struct. array.
+        Returns the abundance matching function object.
+
+        Args:
+            MFobj : precomputed mass function. Assumes both columns are logged
+            mlim : minimum limit in log10 on mass of matched galaxu mass
         """
         IDS = np.where(MFobj[:, 0]>mlim)
         # Abundances are not logged, whereas masses are logged
@@ -46,21 +55,29 @@ class Model:
     
     def interp_covmat(self, method='nearest'):
         """
-        Load the precomputed values of covariance matrix on a grid and creates and interpolation object
+        Loads the precomputed values of covariance matrix on a grid and returns an interpolation object.
+
+        Args:
+            method : interpolation kind. Types: 'nearest', 'linear'
         """
         data_jack = p.load_pickle("../../Data/Train_jackknife_covmats.p")
         #data_stoch = p.load_pickle("../../Data/Train_stoch_covmats.p")
         XX = data_jack['alpha']
         YY = data_jack['scatter']
         z_covmat = data_jack['covmat']
-        f = scipy.interpolate.RegularGridInterpolator(points=(np.unique(YY), np.unique(XX), self.bins_arr, self.bins_arr),
-                                                      values=z_covmat, method='nearest')
-        return f
+        return scipy.interpolate.RegularGridInterpolator(points=(np.unique(YY), np.unique(XX), self.bins_arr, self.bins_arr),
+                                 values=z_covmat, method='nearest')
 
 
     def get_halos(self, halos_object, cutoff, subside=p.subside):
         """
-        Bin the halos and create a new struct array
+        Bins the halos, applies some cut on minimum halos mass and creates a new struct array
+        which also contains the bin in which each halo located. Useful for jackknifing.
+
+        Args:
+            halos_oject
+            cutoff
+            subside
         """
         # Calculate the box position in a subvolume
         edges = np.arange(0, p.boxsize+subside, subside)

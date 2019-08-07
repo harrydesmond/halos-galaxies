@@ -27,11 +27,6 @@ cosmology = {u'h': 0.688, u'omega_lambda_0': 0.705, u'omega_k_0': 0.0, u'omega_M
 halos = np.load("../../BAM/hlist_1.00000.npy")
 
 print("Finished loading things")
-
-# Make cuts on mvir
-#IDS = np.where(np.log10(halos['mvir'])>9.8)
-
-# Calculate some extra things that will later need to be stored
 # And grab some stuff
 vvir = vvir_from_cosmology(halos, cosmology)
 vmax = halos['Vmax@Mpeak']
