@@ -7,6 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
+import sys
 import pickle
 import kmeans_radec
 import Setup as p
@@ -33,6 +34,7 @@ rand_gal_labels = km.labels
 gal_labels = km.find_nearest(X)
 
 print("Everything loaded")
+sys.stdout.flush()
 
 # Let's do the heavy work..
 def generate_wp(kcent, nthreads):
@@ -51,18 +53,6 @@ def generate_wp(kcent, nthreads):
     crand_DEC = rand_DEC[IDS]
     crand_Dist = rand_Dist[IDS]
     crandN = crand_Dist.size
-
-    # Make some plots to check if its doing the right thing
-    hp.mollview(np.zeros(12), rot=180)
-    hp.projscatter(np.pi/2-np.deg2rad(crand_DEC), np.deg2rad(crand_RA), s=0.01)
-    plt.savefig("/mnt/zfsusers/rstiskalek/Plots/Clusters/{}Rand.png".format(kcent), dpi=180)
-    plt.close()
-
-
-    hp.mollview(np.zeros(12), rot=180)
-    hp.projscatter(np.pi/2-np.deg2rad(cDEC), np.deg2rad(cRA), s=0.01)
-    plt.savefig("/mnt/zfsusers/rstiskalek/Plots/Clusters/{}SDSS.png".format(kcent), dpi=180)
-    plt.close()
 
     # Auto pair counts in DD i.e. survey catalog
     autocorr = 1
@@ -88,14 +78,19 @@ def generate_wp(kcent, nthreads):
 
 print("Starting pixel computation..")
 wp_out = list()
-start_time = time.time()
+
 for kcent in range(p.ncent):
+    start = time()
     wp = generate_wp(kcent, ncores)
-    print("Calculated w_p after covering cent {}".format(kcent))
     wp_out.append(wp)
 
+    t = time()-start
+    extime.append(t)
+    remtime = sum(extime)/len(extime)*(p.ncent-kcent-1)/60**2
+    print("Done with step {}/{} in time {:.1f}. Estimated remaining time is {:.2f} hours".format(k, p.ncent, t, remtime))
+    sys.stdout.flush()
+
 wp_out = np.array(wp_out)
-print("Finished in {}".format(time.time()-start_time))
 
 Nsub = p.ncent
 # The shape is Nsubsample x nbins
@@ -136,3 +131,6 @@ ax.legend()
 plt.tight_layout()   
 plt.savefig("/mnt/zfsusers/rstiskalek/Plots/Corrfunc/4_CFcompar.png", dpi=180)
 plt.close()
+
+print("Finished everything!")
+sys.stdout.flush()
