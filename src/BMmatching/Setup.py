@@ -8,7 +8,7 @@ import joblib
 
 # Set constants
 h = 1
-nside = 36
+nside = 28
 lims = {'min_m' : 9.4, 'max_m' : 30,
         'min_ra' : 100, 'max_ra' : 300,
         'min_dec' : -4.8, 'max_dec' : 75}
@@ -17,7 +17,7 @@ lims = {'min_m' : 9.4, 'max_m' : 30,
 Nens = 100
 
 # Random catalog settings
-rand_size_mult = 150
+rand_size_mult = 50
 min_alpha = 0.0
 max_alpha = 1.25
 min_scatter = 0.0

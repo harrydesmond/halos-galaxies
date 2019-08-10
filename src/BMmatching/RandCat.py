@@ -7,6 +7,7 @@ import time
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from astropy.io import fits
 import healpy as hp
 import kmeans_radec
 import pickle
@@ -24,11 +25,11 @@ rank = comm.Get_rank()
 MPI_size = comm.Get_size()
 
 # Load galaxy catalog
-galaxy_catalog = np.load("../../Data/sdss_cutoffV2.npy")
-pixs_list = np.load("../../Data/gpixs_list.npy")
+galaxy_catalog = fits.open("../../BAM/a100springfull.fits")[1].data
+pixs_list = p.load_pickle("../../Data/BMmatching/Pixs_coverage_matchedcat.p")
 
 # Set distance limits based on the cut catalog
-Dist = galaxy_catalog["dist"]
+Dist = galaxy_catalog["Dist"]
 min_dist = np.min(Dist)
 max_dist = np.max(Dist)
 
@@ -96,32 +97,8 @@ if rank == 0:                           # At end, a single thread does things li
     X = np.vstack([RA, DEC]).T
     km = kmeans_radec.kmeans_sample(X, p.ncent, maxiter=250, tol=1.0e-5)
     # Save the km object
-    p.dump_pickle(km, "../../Data/km_clusters.p")
-    np.save('../../Data/randCat_matchnsa.npy', random_catalog)
+    p.dump_pickle(km, "../../Data/BMmatching/Rand_km_clusters.p")
+    np.save('../../Data/BMmatching/randCat_match.npy', random_catalog)
     print("Saved the kmeans object")    
      
-    arr = np.arange(DEC.size)
-    rands = np.random.choice(arr, size=(int(arr.size/p.rand_size_mult)), replace=False)
-    pRA = RA[rands]
-    pDEC = DEC[rands]
-    plabs = km.labels[rands]
-    
-    hp.mollview(np.zeros(12), rot=180)
-    for lab in range(p.ncent):
-        IDS = np.where(plabs == lab)
-        hp.projscatter(np.pi/2-np.deg2rad(pDEC[IDS]), np.deg2rad(pRA[IDS]), s=1)
-    plt.savefig("../../Plots/Corrfunc/Clustering.png", dpi=240)
-    plt.close()
-    
-    
-    print("Done with generating the catalog of size {}!".format(RA.size))
-
-
-    
-   # Make plots to check everything is going acccording to plan :-O
-    plt.figure()
-    plt.hist(dist, bins='auto')
-    plt.savefig("../../Plots/Corrfunc/3_Hist_randDist.png")
-    plt.close()
-    
 print("All finished!")
