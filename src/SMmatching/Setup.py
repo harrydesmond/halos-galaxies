@@ -8,11 +8,12 @@ import joblib
 h = 0.688
 nside = 25
 
-min_alpha = -1.0
-max_alpha = 0.5
-min_scatter = 0.0
-max_scatter = 0.30
-grid_size = 5
+# Random catalog settings
+rand_size_mult = 250
+min_alpha = 0.0
+max_alpha = 1.30
+min_scatter = 0.05
+max_scatter = 0.25
 
 boxsize = 400
 subside = 25

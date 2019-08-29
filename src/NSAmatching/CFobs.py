@@ -17,32 +17,31 @@ import Setup as p
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--threads", dest="threads", help="Number of threads",
                     type=str, default=8)
-parser.add_argument("--perccat", dest="perccat", help="Sets how much of the catalog to exclude",
+parser.add_argument("--logmslim", dest="logMSlim", help="Lower limit on stellar mass",
                     type=str, default=None)
 args = parser.parse_args()
 ncores= int(args.threads)
-perccat = (args.perccat)
+logSMlim = float(args.logMSlim)
 
 # Read the galaxy catalog
-galaxy_catalog = np.load("../../Data/BMmatching/CFcatBM_{}_.npy".format(perccat))
-RA, DEC, Dist = p.unpack_catalog(galaxy_catalog)
-weights = galaxy_catalog['weights']
-print(weights[:50])
-sys.stdout.flush()
+galaxy_catalog = np.load("../../Data/NSAmatching/CFcatNSA_{}_.npy".format(logSMlim))
+RA, DEC, dist = p.unpack_catalog(galaxy_catalog)
 N = RA.size
 
 # Read the supplied randoms catalog
-random_catalog = np.load("../../Data/BMmatching/CFrandcatBM_{}_.npy".format(perccat))
+random_catalog = np.load("../../Data/NSAmatching/CFrandcatNSA_{}_.npy".format(logSMlim))
 rand_RA, rand_DEC, rand_Dist = p.unpack_catalog(random_catalog)
-rand_weights = random_catalog['weights']
 rand_N = rand_RA.size
-print(rand_weights[:50])
 
 # Setup the bins
 bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
 
+# Now assign each galaxy to a kmeans cluster that were precomputed on the random data set
+X = np.vstack([RA, DEC]).T
+km = p.load_pickle("../../Data/NSAmatching/km_clusters.p")
+
 rand_gal_labels = random_catalog['label']
-gal_labels = galaxy_catalog['label']
+gal_labels = km.find_nearest(X)
 
 print("Everything loaded")
 sys.stdout.flush()
@@ -55,8 +54,7 @@ def generate_wp(kcent, nthreads):
     IDS = np.where(gal_labels != kcent)
     cRA = RA[IDS]
     cDEC = DEC[IDS]
-    cDist = Dist[IDS]
-    cweights = weights[IDS]
+    cDist = dist[IDS]
     cN = cDist.size
 
     # Do the same as above but for the simulated catalog
@@ -64,39 +62,24 @@ def generate_wp(kcent, nthreads):
     crand_RA = rand_RA[IDS]
     crand_DEC = rand_DEC[IDS]
     crand_Dist = rand_Dist[IDS]
-    crand_weights = rand_weights[IDS]
     crandN = crand_Dist.size
-#    # Auto pair counts in DD i.e. survey catalog
-#    autocorr = 1
-#    DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-#                        p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True) 
-#    # Cross pair counts in DR
-#    autocorr = 0
-#    DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-#                        p.pimax, bins, cRA, cDEC, cDist, RA2=crand_RA,
-#                        DEC2=crand_DEC, CZ2=crand_Dist, is_comoving_dist=True)
-#    
-#    # Auto pairs counts in RR i.e. random catalog
-#    autocorr=1
-#    RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-#                        p.pimax, bins, crand_RA, crand_DEC, crand_Dist, is_comoving_dist=True)
 
     # Auto pair counts in DD i.e. survey catalog
     autocorr = 1
     DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, cRA, cDEC, cDist, weights1=cweights, weight_type='pair_product', is_comoving_dist=True) 
+                        p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True)
+    
     # Cross pair counts in DR
     autocorr = 0
     DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, cRA, cDEC, cDist, weights1=cweights, RA2=crand_RA,
-                        DEC2=crand_DEC, CZ2=crand_Dist, weights2=crand_weights, weight_type='pair_product', is_comoving_dist=True)
+                        p.pimax, bins, cRA, cDEC, cDist, RA2=crand_RA,
+                        DEC2=crand_DEC, CZ2=crand_Dist, is_comoving_dist=True)
     
     # Auto pairs counts in RR i.e. random catalog
     autocorr=1
     RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, crand_RA, crand_DEC, crand_Dist, weights1=crand_weights,
-                        is_comoving_dist=True, weight_type='pair_product')
-    
+                        p.pimax, bins, crand_RA, crand_DEC, crand_Dist,
+                        is_comoving_dist=True)
     
     # All the pair counts are done, get the angular correlation function
     wp = Corrfunc.utils.convert_rp_pi_counts_to_wp(cN, cN, crandN, crandN,
@@ -142,8 +125,7 @@ for name, dat in zip(["cbins", "mean_wp", "covmap_wp"], [cbins, mean_wp, cov_mat
 
 
 # Save the pickles
-p.dump_pickle(output, "../../Data/BMmatching/Obs_CF_BMcut_{}_.p".format(perccat))
-print(mean_wp)
+p.dump_pickle(output, "../../Data/NSAmatching/Obs_CF_SMcut_{}_.p".format(logSMlim))
 
 print("Finished everything!")
 sys.stdout.flush()

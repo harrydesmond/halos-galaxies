@@ -11,22 +11,19 @@ import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--threads", dest="threads", help="Number of threads",
                     type=str, default=8)
-parser.add_argument("--perccat", dest="perccat", help="Sets how much of the catalog to exclude",
+parser.add_argument("--logmslim", dest="logMSlim", help="Lower limit on stellar mass",
                     type=str, default=None)
 args = parser.parse_args()
-ncores= int(args.threads)
-perccat = float(args.perccat)
-
-cuts_def = p.load_pickle("../../Data/BMmatching/logMBcuts_def.p")
-logBMlim = cuts_def[perccat]
+ncores = int(args.threads)
+logSMlim = float(args.logMSlim)
 
 # Initiate my likelihood model
-model = Likelihood.Model(logBMlim, perccat, generator=True)
+model = Likelihood.Model(logSMlim, generator=True)
 print("Initiated the model!")
 sys.stdout.flush()
 
-Nalphas = p.grid_size
-Nscatters = p.grid_size
+Nalphas = 15
+Nscatters = 15
 alphas = np.linspace(p.min_alpha, p.max_alpha, Nalphas)
 scatters = np.linspace(p.min_scatter, p.max_scatter, Nscatters)
 
@@ -57,7 +54,7 @@ for i in range(ndim1):
         k += 1
 
 res = {'alpha' : XX, 'scatter' : YY, 'covmat' : covmats}
-p.dump_pickle(res, "../../Data/BMmatching/Train_jackknife_covmats_{}_.p".format(perccat))
+p.dump_pickle(res, "../../Data/NSAmatching/Train_jackknife_covmats_{}_.p".format(logSMlim))
 
 print("Finished")
 sys.stdout.flush()

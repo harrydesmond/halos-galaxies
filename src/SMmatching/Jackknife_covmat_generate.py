@@ -17,16 +17,17 @@ args = parser.parse_args()
 ncores= int(args.threads)
 perccat = float(args.perccat)
 
-cuts_def = p.load_pickle("../../Data/BMmatching/logMBcuts_def.p")
-logBMlim = cuts_def[perccat]
+
+cuts_def = p.load_pickle("../../Data/SMmatching/logMScuts_def.p")
+logSMlim = cuts_def[perccat]
 
 # Initiate my likelihood model
-model = Likelihood.Model(logBMlim, perccat, generator=True)
-print("Initiated the model!")
+model = Likelihood.Model(logSMlim, perccat, generator=True)
+print("Initiated the model!", perccat, logSMlim)
 sys.stdout.flush()
 
-Nalphas = p.grid_size
-Nscatters = p.grid_size
+Nalphas = 15
+Nscatters = 15
 alphas = np.linspace(p.min_alpha, p.max_alpha, Nalphas)
 scatters = np.linspace(p.min_scatter, p.max_scatter, Nscatters)
 
@@ -57,7 +58,7 @@ for i in range(ndim1):
         k += 1
 
 res = {'alpha' : XX, 'scatter' : YY, 'covmat' : covmats}
-p.dump_pickle(res, "../../Data/BMmatching/Train_jackknife_covmats_{}_.p".format(perccat))
+p.dump_pickle(res, "../../Data/SMmatching/Train_jackknife_covmats_{}_.p".format(perccat))
 
 print("Finished")
 sys.stdout.flush()

@@ -24,7 +24,7 @@ ncores= int(args.threads)
 perccat = (args.perccat)
 
 # Read the galaxy catalog
-galaxy_catalog = np.load("../../Data/BMmatching/CFcatBM_{}_.npy".format(perccat))
+galaxy_catalog = np.load("../../Data/SMmatching/CFcatSM_{}_.npy".format(perccat))
 RA, DEC, Dist = p.unpack_catalog(galaxy_catalog)
 weights = galaxy_catalog['weights']
 print(weights[:50])
@@ -32,7 +32,7 @@ sys.stdout.flush()
 N = RA.size
 
 # Read the supplied randoms catalog
-random_catalog = np.load("../../Data/BMmatching/CFrandcatBM_{}_.npy".format(perccat))
+random_catalog = np.load("../../Data/SMmatching/CFrandcatSM_{}_.npy".format(perccat))
 rand_RA, rand_DEC, rand_Dist = p.unpack_catalog(random_catalog)
 rand_weights = random_catalog['weights']
 rand_N = rand_RA.size
@@ -142,7 +142,7 @@ for name, dat in zip(["cbins", "mean_wp", "covmap_wp"], [cbins, mean_wp, cov_mat
 
 
 # Save the pickles
-p.dump_pickle(output, "../../Data/BMmatching/Obs_CF_BMcut_{}_.p".format(perccat))
+p.dump_pickle(output, "../../Data/SMmatching/Obs_CF_SMcut_{}_.p".format(perccat))
 print(mean_wp)
 
 print("Finished everything!")

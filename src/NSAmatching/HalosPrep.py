@@ -49,6 +49,6 @@ data = [mvir, conc, x_pos, y_pos, z_pos, vmax, vvir, pid]
 for name, d in zip(names, data):
     halos_catalog[name] = d
 
-np.save("../../Data/BMmatching/halos_list.npy", halos_catalog)
+np.save("../../Data/NSAmatching/halos_list.npy", halos_catalog)
 
 print("Finished with everything")
