@@ -30,9 +30,9 @@ weights = galaxy_catalog['weights']
 N = RA.size
 
 # Read the supplied randoms catalog
-random_catalog = np.load("../../Data/NSAmatching/CFrandcatNSA_{}_.npy".format(logSMlim))
+random_catalog = np.load("../../Data/NSAmatching/CFrandcatNSa_{}_.npy".format(logSMlim))
 rand_RA, rand_DEC, rand_CZ = p.unpack_catalog(random_catalog)
-rand_weights = galaxy_catalog['weights']
+rand_weights = random_catalog['weights']
 rand_N = rand_RA.size
 
 # Setup the bins
