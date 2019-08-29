@@ -1,1 +1,4 @@
-# halos-galaxies
+# The relation between galaxies and dark matter halos
+
+Lala
+
