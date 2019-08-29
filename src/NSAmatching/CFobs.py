@@ -25,23 +25,22 @@ logSMlim = float(args.logMSlim)
 
 # Read the galaxy catalog
 galaxy_catalog = np.load("../../Data/NSAmatching/CFcatNSA_{}_.npy".format(logSMlim))
-RA, DEC, dist = p.unpack_catalog(galaxy_catalog)
+RA, DEC, CZ = p.unpack_catalog(galaxy_catalog)
+weights = galaxy_catalog['weights']
 N = RA.size
 
 # Read the supplied randoms catalog
 random_catalog = np.load("../../Data/NSAmatching/CFrandcatNSA_{}_.npy".format(logSMlim))
-rand_RA, rand_DEC, rand_Dist = p.unpack_catalog(random_catalog)
+rand_RA, rand_DEC, rand_CZ = p.unpack_catalog(random_catalog)
+rand_weights = galaxy_catalog['weights']
 rand_N = rand_RA.size
 
 # Setup the bins
 bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
 
-# Now assign each galaxy to a kmeans cluster that were precomputed on the random data set
-X = np.vstack([RA, DEC]).T
-km = p.load_pickle("../../Data/NSAmatching/km_clusters.p")
 
 rand_gal_labels = random_catalog['label']
-gal_labels = km.find_nearest(X)
+gal_labels = galaxy_catalog['label']
 
 print("Everything loaded")
 sys.stdout.flush()
@@ -54,32 +53,36 @@ def generate_wp(kcent, nthreads):
     IDS = np.where(gal_labels != kcent)
     cRA = RA[IDS]
     cDEC = DEC[IDS]
-    cDist = dist[IDS]
-    cN = cDist.size
+    cCZ= CZ[IDS]
+    cweights = weights[IDS]
+    cN = cCZ.size
 
     # Do the same as above but for the simulated catalog
     IDS = np.where(rand_gal_labels != kcent)
     crand_RA = rand_RA[IDS]
     crand_DEC = rand_DEC[IDS]
-    crand_Dist = rand_Dist[IDS]
-    crandN = crand_Dist.size
+    crand_CZ= rand_CZ[IDS]
+    crand_weights = rand_weights[IDS]
+    crandN = crand_CZ.size
 
     # Auto pair counts in DD i.e. survey catalog
     autocorr = 1
     DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True)
+                        p.pimax, bins, cRA, cDEC, cCZ, cweights,
+                        weight_type='pair_product')
     
     # Cross pair counts in DR
     autocorr = 0
     DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, cRA, cDEC, cDist, RA2=crand_RA,
-                        DEC2=crand_DEC, CZ2=crand_Dist, is_comoving_dist=True)
+                        p.pimax, bins, cRA, cDEC, cCZ, cweights, RA2=crand_RA,
+                        DEC2=crand_DEC, CZ2=crand_CZ, weights2=crand_weights,
+                        weight_type='pair_product')
     
     # Auto pairs counts in RR i.e. random catalog
     autocorr=1
     RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-                        p.pimax, bins, crand_RA, crand_DEC, crand_Dist,
-                        is_comoving_dist=True)
+                        p.pimax, bins, crand_RA, crand_DEC, crand_CZ,
+                        crand_weights, weight_type='pair_product')
     
     # All the pair counts are done, get the angular correlation function
     wp = Corrfunc.utils.convert_rp_pi_counts_to_wp(cN, cN, crandN, crandN,
@@ -114,9 +117,6 @@ for i in range(ndim):
             cov_matrix[i, j] += (wp_out[k, i]-mean_wp[i])*(wp_out[k, j]-mean_wp[j])
 cov_matrix = cov_matrix*(Nsub-1)/Nsub
 cbins = p.bin_centers(bins)
-
-# Calculate the STD on elements
-std = np.sqrt(np.diagonal(cov_matrix))
 
 # Save the output
 output = dict()

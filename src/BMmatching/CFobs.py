@@ -27,8 +27,6 @@ perccat = (args.perccat)
 galaxy_catalog = np.load("../../Data/BMmatching/CFcatBM_{}_.npy".format(perccat))
 RA, DEC, Dist = p.unpack_catalog(galaxy_catalog)
 weights = galaxy_catalog['weights']
-print(weights[:50])
-sys.stdout.flush()
 N = RA.size
 
 # Read the supplied randoms catalog
@@ -36,7 +34,6 @@ random_catalog = np.load("../../Data/BMmatching/CFrandcatBM_{}_.npy".format(perc
 rand_RA, rand_DEC, rand_Dist = p.unpack_catalog(random_catalog)
 rand_weights = random_catalog['weights']
 rand_N = rand_RA.size
-print(rand_weights[:50])
 
 # Setup the bins
 bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
@@ -66,20 +63,6 @@ def generate_wp(kcent, nthreads):
     crand_Dist = rand_Dist[IDS]
     crand_weights = rand_weights[IDS]
     crandN = crand_Dist.size
-#    # Auto pair counts in DD i.e. survey catalog
-#    autocorr = 1
-#    DD_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-#                        p.pimax, bins, cRA, cDEC, cDist, is_comoving_dist=True) 
-#    # Cross pair counts in DR
-#    autocorr = 0
-#    DR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-#                        p.pimax, bins, cRA, cDEC, cDist, RA2=crand_RA,
-#                        DEC2=crand_DEC, CZ2=crand_Dist, is_comoving_dist=True)
-#    
-#    # Auto pairs counts in RR i.e. random catalog
-#    autocorr=1
-#    RR_counts = Corrfunc.mocks.DDrppi_mocks(autocorr, p.cosmology, nthreads,
-#                        p.pimax, bins, crand_RA, crand_DEC, crand_Dist, is_comoving_dist=True)
 
     # Auto pair counts in DD i.e. survey catalog
     autocorr = 1
@@ -131,9 +114,6 @@ for i in range(ndim):
             cov_matrix[i, j] += (wp_out[k, i]-mean_wp[i])*(wp_out[k, j]-mean_wp[j])
 cov_matrix = cov_matrix*(Nsub-1)/Nsub
 cbins = p.bin_centers(bins)
-
-# Calculate the STD on elements
-std = np.sqrt(np.diagonal(cov_matrix))
 
 # Save the output
 output = dict()

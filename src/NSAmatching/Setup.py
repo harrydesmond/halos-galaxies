@@ -28,7 +28,7 @@ cosmology = 2
 nthreads = 8
 
 def unpack_catalog(catalog):
-    return catalog['ra'], catalog['dec'], catalog['dist']
+    return catalog['ra'], catalog['dec'], catalog['cz']
 
 
 def bin_centers(edges):
