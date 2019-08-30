@@ -20,7 +20,7 @@ class Model:
     def __init__(self, logMSlim, generator):
         # Load and unpack the MF
         self.logMSlim = logMSlim
-        self.boxsize = 400.0
+        self.boxsize = 400.0 # in units of Mpc/h - this is fine for AM but for CF calculations need to rescale everything
         self.MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
         self.af = self.__getAbundanceFunc(self.MFobj)
         # Load in the list of halos (this list assumed to be already edited..)
@@ -96,6 +96,7 @@ class Model:
         halos_catalog = np.zeros(N, dtype={'names':('mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins', 'pid'),
                               'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'int64', 'int64')})
         names = ['mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins', 'pid']
+        # Here the coordinates get rescaled by h
         data = [halos_object['mvir'][IDS], halos_object['x'][IDS], halos_object['y'][IDS], halos_object['z'][IDS],
                 halos_object['vmax'][IDS], halos_object['vvir'][IDS], gbins[IDS], halos_object['pid'][IDS]]
         for name, d in zip(names, data):

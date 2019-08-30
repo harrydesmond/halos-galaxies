@@ -198,9 +198,27 @@ logMH = logMH[IDS]
 logMS = np.log10(MS[IDS])
 appmag = appmag[IDS]
 
-def func_absmag(appmag, d):
-    # Distance in Mpc
-    return appmag-25-5*np.log10(d)
+def redshift2distance(z):
+    omega_m = 0.295
+    omega_lambda = 0.705
+    omega_k = 0.0
+    H0 = 68.8
+    Dh = scipy.constants.c*1e-3/(H0)
+    num = lambda z_prime : 1/np.sqrt(omega_m*(1+z_prime)**3+omega_k*(1+z_prime)**2+omega_lambda)
+    quadnum = quad(num, 0, z)[0]
+    comoving_distance = Dh*quadnum
+    return comoving_distance
+
+xx_redshift = np.linspace(0, 1, 10000)
+yy_comoving = np.array([redshift2distance(i) for i in xx_redshift])
+
+distance2redshift = interp1d(yy_comoving, xx_redshift)
+
+def func_absmag(appmag, comoving_dist):
+    # Return absolute magnitude for a given apparent magnitude and comoving distance
+    z = distance2redshift(comoving_dist)
+    luminosity_distance = (1+z)*comoving_dist
+    return appmag-25-5*np.log10(luminosity_distance)
 
 absmag = list()
 for i, j in zip(appmag, dist):
