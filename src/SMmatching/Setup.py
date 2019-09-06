@@ -14,6 +14,8 @@ min_alpha = 0.0
 max_alpha = 1.30
 min_scatter = 0.05
 max_scatter = 0.25
+Nalphas = 10
+Nscatters = 10
 
 boxsize = 400
 subside = 25
@@ -22,6 +24,7 @@ subside = 25
 nbins = 30
 min_rp = 0.1
 max_rp = 30
+bins = np.logspace(np.log10(min_rp), np.log10(max_rp), nbins+1)
 ncent = 100
 
 pimax = 40

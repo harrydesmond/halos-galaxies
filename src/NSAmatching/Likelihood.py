@@ -87,18 +87,15 @@ class Model:
         ly = np.digitize(halos_object['y'], edges)-1
         nboxes = edges.size-1
         gbins = ly*nboxes+lx
-        N = halos_object['x'].size
-        cond1 = np.logical_and(halos_object['x'] < self.boxsize, halos_object['y'] < self.boxsize)
-        IDS = np.where(np.logical_and(cond1, halos_object['z'] < self.boxsize))
 
             
-        N = halos_object['mvir'][IDS].size    
-        halos_catalog = np.zeros(N, dtype={'names':('mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins', 'pid'),
-                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'int64', 'int64')})
-        names = ['mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins', 'pid']
-        # Here the coordinates get rescaled by h
-        data = [halos_object['mvir'][IDS], halos_object['x'][IDS], halos_object['y'][IDS], halos_object['z'][IDS],
-                halos_object['vmax'][IDS], halos_object['vvir'][IDS], gbins[IDS], halos_object['pid'][IDS]]
+        N = halos_object['mvir'].size    
+        halos_catalog = np.zeros(N, dtype={'names':('mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins'),
+                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'int64')})
+        names = ['mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins']
+        data = [halos_object['mvir'], halos_object['x'], halos_object['y'],
+                halos_object['z'], halos_object['vmax'],
+                halos_object['vvir'], gbins]
         for name, d in zip(names, data):
             halos_catalog[name] = d
 

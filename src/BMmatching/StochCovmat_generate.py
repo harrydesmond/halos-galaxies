@@ -29,10 +29,8 @@ sys.stdout.flush()
 
 
 # How dense should the grid be
-Nalphas = p.grid_size
-Nscatters = p.grid_size
-alphas = np.linspace(p.min_alpha, p.max_alpha, Nalphas)
-scatters = np.linspace(p.min_scatter, p.max_scatter, Nscatters)
+alphas = np.linspace(p.min_alpha, p.max_alpha, p.Nalphas)
+scatters = np.linspace(p.min_scatter, p.max_scatter, p.Nscatters)
 
 # Say x-dimension corresponds to alpha, y-dimension corresponds to scatter
 XX, YY = np.meshgrid(alphas, scatters)

@@ -12,6 +12,8 @@ min_alpha = -1.0
 max_alpha = 0.5
 min_scatter = 0.0
 max_scatter = 0.30
+Nalphas = 10
+Nscattes = 10
 grid_size = 5
 
 boxsize = 400
@@ -21,6 +23,8 @@ subside = 25
 nbins = 30
 min_rp = 0.1
 max_rp = 30
+# all of thse assume units Mpc/h
+bins = np.logspace(np.log10(min_rp), np.log10(max_rp), nbins+1)
 ncent = 100
 
 pimax = 40

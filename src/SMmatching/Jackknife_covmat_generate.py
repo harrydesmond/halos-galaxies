@@ -26,10 +26,8 @@ model = Likelihood.Model(logSMlim, perccat, generator=True)
 print("Initiated the model!", perccat, logSMlim)
 sys.stdout.flush()
 
-Nalphas = 15
-Nscatters = 15
-alphas = np.linspace(p.min_alpha, p.max_alpha, Nalphas)
-scatters = np.linspace(p.min_scatter, p.max_scatter, Nscatters)
+alphas = np.linspace(p.min_alpha, p.max_alpha, p.Nalphas)
+scatters = np.linspace(p.min_scatter, p.max_scatter, p.Nscatters)
 
 # Say x-dimension corresponds to alpha, y-dimension corresponds to scatter
 XX, YY = np.meshgrid(alphas, scatters)

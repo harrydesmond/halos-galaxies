@@ -13,6 +13,8 @@ min_alpha = 0.0
 max_alpha = 1.30
 min_scatter = 0.05
 max_scatter = 0.25
+Nalphas = 15
+Nscatters = 15
 
 boxsize = 400
 subside = 25

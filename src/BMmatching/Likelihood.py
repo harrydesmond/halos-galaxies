@@ -21,12 +21,12 @@ class Model:
         # Load and unpack the MF
         self.logMBlim = logMBlim
         self.perccut = perccut
-        self.boxsize = 400.0
+        self.boxsize = 400.0 #Mpc/h
         self.MFobj = np.loadtxt("../../BAM/BMF_bin_abundance.dat")
         self.af = self.__getAbundanceFunc(self.MFobj)
         # Load in the list of halos (this list assumed to be already edited..)
         self.halos = self.get_halos(np.load("../../Data/BMmatching/halos_list.npy"))
-        self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
+        self.rp_bins =  p.bins # Mpc/h
         self.bins_arr = np.arange(p.nbins)
         self.nside = 16
         # Load observational correlation function
@@ -88,17 +88,13 @@ class Model:
         ly = np.digitize(halos_object['y'], edges)-1
         nboxes = edges.size-1
         gbins = ly*nboxes+lx
-        N = halos_object['x'].size
-        cond1 = np.logical_and(halos_object['x'] < self.boxsize, halos_object['y'] < self.boxsize)
-        IDS = np.where(np.logical_and(cond1, halos_object['z'] < self.boxsize))
-
             
-        N = halos_object['mvir'][IDS].size    
-        halos_catalog = np.zeros(N, dtype={'names':('mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins', 'pid'),
-                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'int64', 'int64')})
-        names = ['mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins', 'pid']
-        data = [halos_object['mvir'][IDS], halos_object['x'][IDS], halos_object['y'][IDS], halos_object['z'][IDS],
-                halos_object['vmax'][IDS], halos_object['vvir'][IDS], gbins[IDS], halos_object['pid'][IDS]]
+        N = halos_object['mvir'].size    
+        halos_catalog = np.zeros(N, dtype={'names':('mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins'),
+                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'float64', 'int64')})
+        names = ['mvir', 'x', 'y', 'z', 'vmax', 'vvir', 'gbins']
+        data = [halos_object['mvir'], halos_object['x'], halos_object['y'], halos_object['z'],
+                halos_object['vmax'], halos_object['vvir'], gbins]
         for name, d in zip(names, data):
             halos_catalog[name] = d
 
@@ -145,15 +141,14 @@ class Model:
             # TO DO:
             #       - when doing this cut include a parameter that will exclude some low mass halos
             N = np.where(mask == True)[0].size
-            cat_out = np.zeros(N, dtype={'names':('mvir', 'cat', 'x', 'y', 'z', 'gbins', 'pid'),
-                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'int64', 'int64')})
+            cat_out = np.zeros(N, dtype={'names':('mvir', 'cat', 'x', 'y', 'z', 'gbins'),
+                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'int64')})
             cat_out['mvir'] = self.halos['mvir'][mask]
             cat_out['cat'] = cat_this[mask]
             cat_out['x'] = self.halos['x'][mask]
             cat_out['y'] = self.halos['y'][mask]
             cat_out['z'] = self.halos['z'][mask]
             cat_out['gbins'] = self.halos['gbins'][mask]
-            cat_out['pid'] = self.halos['pid'][mask]
             
             res.append(cat_out)
 
@@ -284,6 +279,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-

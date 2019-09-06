@@ -36,7 +36,9 @@ rand_weights = random_catalog['weights']
 rand_N = rand_RA.size
 
 # Setup the bins
-bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)
+bins = p.bins #Mpc/h
+# Convert these bins to physical units
+bins = p.bins/p.h
 
 rand_gal_labels = random_catalog['label']
 gal_labels = galaxy_catalog['label']
@@ -113,6 +115,7 @@ for i in range(ndim):
         for k in range(Nsub):
             cov_matrix[i, j] += (wp_out[k, i]-mean_wp[i])*(wp_out[k, j]-mean_wp[j])
 cov_matrix = cov_matrix*(Nsub-1)/Nsub
+bins = bins*p.h
 cbins = p.bin_centers(bins)
 
 # Save the output
