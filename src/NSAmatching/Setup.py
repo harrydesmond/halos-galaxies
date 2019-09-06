@@ -21,6 +21,8 @@ subside = 25
 nbins = 30
 min_rp = 0.1
 max_rp = 30
+# Remember that this distance is in units Mpc/h
+bins = np.logspace(np.log10(min_rp), np.log10(max_rp), nbins + 1)
 ncent = 100
 
 pimax = 40

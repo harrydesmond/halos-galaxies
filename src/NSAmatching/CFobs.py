@@ -36,10 +36,7 @@ rand_weights = random_catalog['weights']
 rand_N = rand_RA.size
 
 # Setup the bins
-# However, since this is for the NSA the bins will have to be rescaled as Corrfunc, if it has input in
-# redshifts will output distances in units of 1/h. Hence scale this array by 1/h and then it should
-# calculate the CF at correct points making it comparable with results from AM.
-bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins + 1)/p.h
+bins = p.bins # Units of Mpc/h
 
 
 rand_gal_labels = random_catalog['label']

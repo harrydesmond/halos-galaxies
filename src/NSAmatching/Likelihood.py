@@ -25,7 +25,7 @@ class Model:
         self.af = self.__getAbundanceFunc(self.MFobj)
         # Load in the list of halos (this list assumed to be already edited..)
         self.halos = self.get_halos(np.load("../../Data/NSAmatching/halos_list.npy"))
-        self.rp_bins = np.logspace(np.log10(p.min_rp), np.log10(p.max_rp), p.nbins+1)
+        self.rp_bins = p.bins # Mpc/h
         self.bins_arr = np.arange(p.nbins)
         self.nside = 16
         # Load observational correlation function
@@ -115,7 +115,7 @@ class Model:
         """
         xi = np.abs(self.alphas_unique-alpha).argmin()
         yi = np.abs(self.scatters_unique-scatter).argmin()
-        return self.covmat_interp[yi, xi], self.CFmean_interp[xi, yi]
+        return self.covmat_interp[yi, xi], self.CFmean_interp[yi, xi]
 
 
     def abundance_match(self, alpha, scatter, Niter, repeat=20):
@@ -143,15 +143,14 @@ class Model:
             # Eliminate NaNs and galaxies with mass lower cut
             mask = (~np.isnan(cat_this)) & (cat_this>self.logMSlim)
             N = np.where(mask == True)[0].size
-            cat_out = np.zeros(N, dtype={'names':('mvir', 'cat', 'x', 'y', 'z', 'gbins', 'pid'),
-                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'int64', 'int64')})
+            cat_out = np.zeros(N, dtype={'names':('mvir', 'cat', 'x', 'y', 'z', 'gbins'),
+                              'formats':('float64', 'float64', 'float64', 'float64', 'float64', 'int64')})
             cat_out['mvir'] = self.halos['mvir'][mask]
             cat_out['cat'] = cat_this[mask]
             cat_out['x'] = self.halos['x'][mask]
             cat_out['y'] = self.halos['y'][mask]
             cat_out['z'] = self.halos['z'][mask]
             cat_out['gbins'] = self.halos['gbins'][mask]
-            cat_out['pid'] = self.halos['pid'][mask]
             
             res.append(cat_out)
 
