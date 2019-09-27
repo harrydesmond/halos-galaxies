@@ -22,14 +22,13 @@ class Model:
         self.logMSlim = logMSlim
         self.boxsize = 400.0 # in units of Mpc/h - this is fine for AM but for CF calculations need to rescale everything
         self.MFobj = np.loadtxt("../../BAM/SMF_bin_abundance.dat")
-        self.af = self.__getAbundanceFunc(self.MFobj)
         # Load in the list of halos (this list assumed to be already edited..)
         self.halos = self.get_halos(np.load("../../Data/NSAmatching/halos_list.npy"))
         self.rp_bins = p.bins # Mpc/h
         self.bins_arr = np.arange(p.nbins)
         self.nside = 16
         # Load observational correlation function
-        obs_CF = p.load_pickle("../../Data/SMmatching/Obs_CF_SMcut_{}_.p".format(self.logMSlim)) 
+        obs_CF = p.load_pickle("../../Data/NSAmatching/Obs_CF_SMcut_{}_.p".format(self.logMSlim)) 
         self.obs_wp = obs_CF["mean_wp"]
         self.obs_covmat = obs_CF["covmap_wp"]
         if generator == False:
@@ -54,8 +53,8 @@ class Model:
         """
         Loads the precomputed values of covariance matrix on a grid and returns the interpolation object.
         """
-        data_jack = p.load_pickle("../../Data/SMmatching/Train_jackknife_covmats_{}_.p".format(self.logMSlim))
-        data_stoch = p.load_pickle("../../Data/SMmatching/Train_stoch_covmats_{}_.p".format(self.logMSlim))
+        data_jack = p.load_pickle("../../Data/NSAmatching/Train_jackknife_covmats_{}_.p".format(self.logMSlim))
+        data_stoch = p.load_pickle("../../Data/NSAmatching/Train_stoch_covmats_{}_.p".format(self.logMSlim))
         alphas_unique = np.unique(data_jack['alpha'])
         scatters_unique = np.unique(data_jack['scatter'])
         z_covmat = data_jack['covmat'] + data_stoch['covmat']
@@ -67,7 +66,7 @@ class Model:
         Load the precomputed values of mean correlation function from stochastic realisations. Return the
         interpolation object.
         """
-        data = p.load_pickle("../../Data/SMmatching/Train_stoch_covmats_{}_.p".format(self.logMSlim))
+        data = p.load_pickle("../../Data/NSAmatching/Train_stoch_covmats_{}_.p".format(self.logMSlim))
         wp = data['wp']
         return wp
 
@@ -132,11 +131,12 @@ class Model:
         plist = self.halos['vvir']*(self.halos['vmax']/self.halos['vvir'])**alpha
         # Calculate the number densities
         nd_halos = amatch.calc_number_densities(plist, self.boxsize)
+        af = self.__getAbundanceFunc(self.MFobj)
 
         res = list()
         for __ in range(Niter):
-            self.af.deconvolute(scatter, repeat)
-            cat_this = self.af.match(nd_halos, scatter)
+            af.deconvolute(scatter, repeat)
+            cat_this = af.match(nd_halos, scatter)
             # Eliminate NaNs and galaxies with mass lower cut
             mask = (~np.isnan(cat_this)) & (cat_this>self.logMSlim)
             N = np.where(mask == True)[0].size

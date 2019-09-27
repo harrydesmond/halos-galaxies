@@ -8,19 +8,11 @@ import joblib
 h = 0.688
 nside = 25
 
-# Random catalog settings
-min_alpha = 0.0
-max_alpha = 1.30
-min_scatter = 0.05
-max_scatter = 0.25
-Nalphas = 15
-Nscatters = 15
 
-boxsize = 400
 subside = 25
 
 # Corrfunc settings
-nbins = 30
+nbins = 15
 min_rp = 0.1
 max_rp = 30
 # Remember that this distance is in units Mpc/h
@@ -29,7 +21,6 @@ ncent = 100
 
 pimax = 40
 cosmology = 2
-nthreads = 8
 
 def unpack_catalog(catalog):
     return catalog['ra'], catalog['dec'], catalog['cz']
