@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # coding: utf-8
 import numpy as np
-import scipy.interpolate
 from AbundanceMatching import AbundanceFunction, calc_number_densities
-import Corrfunc
+from Corrfunc.theory import wp
 from time import time
-import GLobalSetup as p
+import Setup as p
 
 class Model:
     """
@@ -15,7 +14,6 @@ class Model:
     Note:
         The parameters are rather inflexible right now. Changing from stellar mass abundance matching to
         baryonic mass etc. requires changing some codes within this and precomputing a plenty of things.
-        A well needed description is about to be written in README.
     """
     def __init__(self, parameters):
         # Unpack parameters
@@ -96,9 +94,8 @@ class Model:
         plist = self.halos['vvir']*(self.halos['vmax']/self.halos['vvir'])**alpha
         # Calculate the number densities
         nd_halos = calc_number_densities(plist, self.boxsize)
-
-        res = list()
-        for __ in range(Niter):
+        
+        def gen_catalog(i):
             af = self.__getAbundanceFunc(self.MFobj)
             af.deconvolute(scatter, repeat)
             cat_this = af.match(nd_halos, scatter)
@@ -114,9 +111,17 @@ class Model:
             cat_out['z'] = self.halos['z'][mask]
             cat_out['gbins'] = self.halos['gbins'][mask]
             
-            res.append(cat_out)
+            return cat_out
 
-        return res
+
+        pool = ProcessPool(ncore)
+        catalogs = pool.map(gen_catalog, np.arange(Niter))
+
+        pool.close()
+        pool.join()
+        pool.terminate()
+
+        return catalogs
 
 
     def calc_jack(self, catalog, nthreads):
@@ -135,7 +140,7 @@ class Model:
             XX = catalog['x'][IDS]
             YY = catalog['y'][IDS]
             ZZ = catalog['z'][IDS]
-            wp = Corrfunc.theory.wp(boxsize=self.boxsize, pimax=self.pimax, nthreads=nthreads, binfile=self.rp_bins, X=XX, Y=YY, Z=ZZ)
+            wp = wp(boxsize=self.boxsize, pimax=self.pimax, nthreads=nthreads, binfile=self.rp_bins, X=XX, Y=YY, Z=ZZ)
             wp_out.append(wp['wp'])
         wp_out = np.array(wp_out)
         
@@ -166,8 +171,7 @@ class Model:
             XX = catalog['x']
             YY = catalog['y']
             ZZ = catalog['z']
-            wp = Corrfunc.theory.wp(boxsize=self.boxsize, pimax=self.pimax, nthreads=nthreads, binfile=self.rp_bins,
-                                    X=XX, Y=YY, Z=ZZ)
+            wp = wp(boxsize=self.boxsize, pimax=self.pimax, nthreads=nthreads, binfile=self.rp_bins, X=XX, Y=YY, Z=ZZ)
             wps.append(wp['wp'])
         
         wps = np.array(wps)
